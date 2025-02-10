@@ -133,9 +133,10 @@ class DQNAgent(object):
             done = np.stack(sample[:, 4])[:, None]  # done signal  (batchsize,1)
             maxQtval = self.Qt.maxQ(s_)
             target = rew + (1 - done) * self._config["discount"] * maxQtval
-            target = torch.tensor(target, device=device)
+            target = torch.tensor(target, device=device, dtype=torch.float32)
             Qval = self.Q.Q_value(
-                torch.tensor(s, device=device), torch.tensor(a, device=device)
+                torch.tensor(s, device=device, dtype=torch.float32),
+                torch.tensor(a, device=device),
             )
             fit_loss = self.Q.fit(Qval, target)
             losses.append(fit_loss)
