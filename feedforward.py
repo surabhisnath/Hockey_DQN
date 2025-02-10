@@ -45,6 +45,8 @@ class QFunction(Feedforward):
         self.loss = torch.nn.SmoothL1Loss()
 
     def fit(self, Qval, targets):
+        self.train()  # put model in training mode
+        self.optimizer.zero_grad()
         loss = self.loss(Qval, targets)
         loss.backward()
         self.optimizer.step()
@@ -81,6 +83,7 @@ class DQNAgent(object):
         self._observation_space = observation_space
         self._action_space = action_space
         self._action_n = action_space.n
+        self.train_iter = 1
         self._config = {
             "eps": 0.05,  # Epsilon in epsilon greedy policies
             "discount": 0.95,
@@ -92,7 +95,7 @@ class DQNAgent(object):
         self._config.update(userconfig)
         self._eps = self._config["eps"]
         self.buffer = mem.Memory(max_size=self._config["buffer_size"])
-        self.train_iter = 0
+
         self.Q = QFunction(
             self._observation_space.shape[0],
             self._action_n,
