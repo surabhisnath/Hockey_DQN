@@ -981,6 +981,14 @@ class HockeyEnv(gym.Env, EzPickle):
                 raise ValueError(f"{value} is not a valid value for {Mode.__name__}")
         else:
             raise TypeError("Input value must be an Enum, name (str), or value (int)")
+        
+    def discretize_actions(self, bins):
+        self.bins = bins
+        self.orig_action_space = self.action_space
+        self.action_space = spaces.Discrete(self.bins)
+    
+    def action(self, action):
+        return self.discrete_to_continous_action(action)
 
 
 class BasicOpponent:
