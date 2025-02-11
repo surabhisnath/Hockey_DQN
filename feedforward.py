@@ -2,7 +2,8 @@ import torch
 import numpy as np
 import gymnasium as gym
 from gymnasium import *
-import memory as mem
+from memory import Memory, PrioritizedMemory
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -42,12 +43,15 @@ class QFunction(Feedforward):
         self.optimizer = torch.optim.Adam(
             self.parameters(), lr=learning_rate, eps=0.000001
         )
-        self.loss = torch.nn.SmoothL1Loss()
+        self.loss = torch.nn.SmoothL1Loss(reduction="none")
 
-    def fit(self, Qval, targets):
+    def fit(self, Qval, targets, weights):
+        weights = torch.tensor(weights, device=device, dtype=torch.float32)
         self.train()  # put model in training mode
         self.optimizer.zero_grad()
         loss = self.loss(Qval, targets)
+        loss = loss * weights
+        loss = loss.mean()
         loss.backward()
         self.optimizer.step()
         return loss.item()
@@ -91,10 +95,14 @@ class DQNAgent(object):
             "batch_size": 128,
             "learning_rate": 0.0002,
             "update_Qt_after": 10,
+            "PrioritizedMemory": False,
         }
         self._config.update(userconfig)
         self._eps = self._config["eps"]
-        self.buffer = mem.Memory(max_size=self._config["buffer_size"])
+        if self._config["PrioritizedMemory"]:
+            self.buffer = PrioritizedMemory(max_size=self._config["buffer_size"])
+        else:
+            self.buffer = Memory(max_size=self._config["buffer_size"])
 
         self.Q = QFunction(
             self._observation_space.shape[0],
@@ -128,19 +136,32 @@ class DQNAgent(object):
             self._update_target_net()
         losses = []
         for i in range(iter_fit):
-            sample = self.buffer.sample(self._config["batch_size"])
+            if self._config["PrioritizedMemory"]:
+                sample, weights, inds = self.buffer.sample(self._config["batch_size"])
+            else:
+                sample = self.buffer.sample(self._config["batch_size"])
+                weights = np.ones((sample.shape[0], 1))
+
             s = np.stack(sample[:, 0])  # s_t (batchsize,3)
             a = np.stack(sample[:, 1])[:, None]  # a_t (batchsize,1)
             rew = np.stack(sample[:, 2])[:, None]  # rew  (batchsize,1)
             s_ = np.stack(sample[:, 3])  # s_t+1 (batchsize,3)
             done = np.stack(sample[:, 4])[:, None]  # done signal  (batchsize,1)
+
             maxQtval = self.Qt.maxQ(s_)
-            target = rew + (1 - done) * self._config["discount"] * maxQtval
-            target = torch.tensor(target, device=device, dtype=torch.float32)
-            Qval = self.Q.Q_value(
+            targets = rew + (1 - done) * self._config["discount"] * maxQtval
+            targets = torch.tensor(targets, device=device, dtype=torch.float32)
+            # print("TARGETS SHAPE", targets.shape)
+
+            Qvals = self.Q.Q_value(
                 torch.tensor(s, device=device, dtype=torch.float32),
                 torch.tensor(a, device=device),
             )
-            fit_loss = self.Q.fit(Qval, target)
+
+            fit_loss = self.Q.fit(Qvals, targets, weights)
             losses.append(fit_loss)
+
+            if self._config["PrioritizedMemory"]:
+                sample, weights, inds = self.buffer.sample(self._config["batch_size"])
+                self.buffer.update(inds)
         return losses
