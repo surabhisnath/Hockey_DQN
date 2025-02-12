@@ -49,12 +49,13 @@ class QFunction(Feedforward):
         weights = torch.tensor(weights, device=device, dtype=torch.float32)
         self.train()  # put model in training mode
         self.optimizer.zero_grad()
+        td_error = torch.abs(Qval - targets)
         loss = self.loss(Qval, targets)
         loss = loss * weights
         loss = loss.mean()
         loss.backward()
         self.optimizer.step()
-        return loss.item()
+        return loss.item(), td_error
 
     def Q_value(self, observations, actions):
         return self.forward(observations).gather(1, actions)
@@ -158,10 +159,9 @@ class DQNAgent(object):
                 torch.tensor(a, device=device),
             )
 
-            fit_loss = self.Q.fit(Qvals, targets, weights)
+            fit_loss, td_error = self.Q.fit(Qvals, targets, weights)
             losses.append(fit_loss)
 
             if self._config["PrioritizedMemory"]:
-                sample, weights, inds = self.buffer.sample(self._config["batch_size"])
-                self.buffer.update(inds)
+                self.buffer.update(inds, td_error)
         return losses
