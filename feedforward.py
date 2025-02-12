@@ -163,5 +163,5 @@ class DQNAgent(object):
             losses.append(fit_loss)
 
             if self._config["PrioritizedMemory"]:
-                self.buffer.update(inds, td_error)
+                self.buffer.update(inds, td_error.detach().numpy())
         return losses
