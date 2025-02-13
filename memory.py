@@ -118,32 +118,6 @@ class SumTree:
         self.current_idx = (self.current_idx + 1) % self.max_size
         self.size = min(self.max_size, self.size + 1)
 
-    # def get(self, cumsum):
-    #     assert cumsum <= self.total
-
-    #     idx = 0
-    #     while 2 * idx + 1 < len(self.nodes):
-    #         left, right = 2 * idx + 1, 2 * idx + 2
-
-    #         if cumsum <= self.nodes[left]:
-    #             idx = left
-    #         else:
-    #             idx = right
-    #             cumsum = cumsum - self.nodes[left]
-
-    #     data_idx = idx - self.max_size + 1
-
-    #     return data_idx, self.nodes[idx], self.data[data_idx]
-
-    # if self.nodes[left] > 0 and cumsum <= self.nodes[left]:
-    #         idx = left
-    #     elif self.nodes[right] > 0:
-    #         cumsum -= self.nodes[left]
-    #         idx = right
-    #     else:
-    #         # Handle empty nodes: jump to next node or break
-    #         break
-
     def get(self, cumsum):
 
         assert (
