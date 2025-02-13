@@ -58,7 +58,9 @@ class QFunction(Feedforward):
         return loss.item(), td_error
 
     def Q_value(self, observations, actions):
-        return self.forward(observations).gather(1, actions)
+        toret = self.forward(observations).gather(1, actions)
+        # print("Qvalhasnan", np.isnan(toret.detach().numpy()).any())
+        return toret
 
     def maxQ(self, observations):
         pred = self.predict(observations)
@@ -138,6 +140,8 @@ class DQNAgent(object):
         losses = []
         for i in range(iter_fit):
             if self._config["PrioritizedMemory"]:
+                # print(self.train_iter, i)
+                # print(len(self.buffer.tree.nodes), self.buffer.tree.nodes[0])
                 sample, weights, inds = self.buffer.sample(self._config["batch_size"])
             else:
                 sample = self.buffer.sample(self._config["batch_size"])
@@ -154,6 +158,8 @@ class DQNAgent(object):
             targets = torch.tensor(targets, device=device, dtype=torch.float32)
             # print("TARGETS SHAPE", targets.shape)
 
+            # print("Shasnan", np.isnan(np.array(s)).any())
+            # print("A", [int(aval[0]) for aval in a])
             Qvals = self.Q.Q_value(
                 torch.tensor(s, device=device, dtype=torch.float32),
                 torch.tensor(a, device=device),

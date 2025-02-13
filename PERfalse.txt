@@ -1,0 +1,9 @@
+1000 episodes completed: Mean cumulative reward: 10.5
+2000 episodes completed: Mean cumulative reward: 15.695
+3000 episodes completed: Mean cumulative reward: 66.729
+4000 episodes completed: Mean cumulative reward: 87.934
+5000 episodes completed: Mean cumulative reward: 86.318
+6000 episodes completed: Mean cumulative reward: 161.955
+7000 episodes completed: Mean cumulative reward: 163.236
+8000 episodes completed: Mean cumulative reward: 161.494
+

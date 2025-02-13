@@ -134,32 +134,54 @@ class SumTree:
     #     data_idx = idx - self.max_size + 1
 
     #     return data_idx, self.nodes[idx], self.data[data_idx]
+
+    # if self.nodes[left] > 0 and cumsum <= self.nodes[left]:
+    #         idx = left
+    #     elif self.nodes[right] > 0:
+    #         cumsum -= self.nodes[left]
+    #         idx = right
+    #     else:
+    #         # Handle empty nodes: jump to next node or break
+    #         break
+
     def get(self, cumsum):
-        # print(cumsum, self.nodes[0])
+
         assert (
-            cumsum < self.total
+            cumsum <= self.total
         ), f"cumsum {cumsum} must be strictly less than total {self.total}"
 
         idx = 0
         # while 2 * idx + 1 < len(self.nodes):
+        index_values = []
         while idx < self.max_size - 1:
             left, right = 2 * idx + 1, 2 * idx + 2
 
             if cumsum <= self.nodes[left]:
-                idx = left
+                if self.nodes[left] > 0:
+                    idx = left
+                else:
+                    break
             else:
-                idx = right
-                cumsum -= self.nodes[left]
+                if self.nodes[right] > 0:
+                    idx = right
+                    cumsum -= self.nodes[left]
+                else:
+                    break
+            index_values.append(float(self.nodes[idx]))
 
         data_idx = idx - self.max_size + 1
 
         # Ensure data_idx is within the real buffer
         if data_idx >= self.size:
-            print(
-                f"Warning: data_idx {data_idx} is out of range (size={self.size}). Returning random valid index."
-            )
-            print(cumsum, self.nodes[0], self.nodes[-1])
-            data_idx = np.random.randint(0, self.size)  # Select a valid index randomly
+            print("CUMSUM:", float(cumsum), "TREEMAX:", float(self.nodes[0]))
+            print("INDEXVALUES", index_values)
+            assert data_idx < self.size
+
+        #     print(
+        #         f"Warning: data_idx {data_idx} is out of range (size={self.size}). Returning random valid index."
+        #     )
+        #     print(cumsum, self.nodes[0])
+        #     data_idx = np.random.randint(0, self.size)  # Select a valid index randomly
 
         return data_idx, self.nodes[idx], self.data[data_idx]
 
