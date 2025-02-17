@@ -5,12 +5,13 @@ import random
 
 # class to store transitions
 class Memory:
-    def __init__(self, max_size=100000):
+    def __init__(self, n_multi_step=None, max_size=100000, discount=0.95):
         self.transitions = np.asarray([])
         self.size = 0
         self.current_idx = 0
         self.max_size = max_size
-
+        self.n_multi_step = n_multi_step
+        self.discount = discount
     def add_transition(self, transitions_new):
         if self.size == 0:
             blank_buffer = [np.asarray(transitions_new, dtype=object)] * self.max_size
@@ -26,7 +27,39 @@ class Memory:
         if batch > self.size:
             batch = self.size
         self.inds = np.random.choice(range(self.size), size=batch, replace=False)
-        return self.transitions[self.inds, :]
+        if self.n_multi_step == None:
+            samples = self.transitions[self.inds, :]
+        elif self.n_multi_step == "MonteCarlo":
+            samples = []
+            for i in self.inds:
+                sum_reward = 0
+                states_look_ahead = self.transitions[i][3]
+                done_look_ahead = self.transitions[i][4]
+                n = 0
+                print(done_look_ahead)
+                while(not done_look_ahead):
+                    sum_reward += (self.discount ** n) * self.transitions[i+n][2]
+                    done_look_ahead = self.transitions[i+n][4]
+                    print(done_look_ahead)
+                sample = np.asarray((self.transitions[i][0], self.transitions[i][1], sum_reward, self.transitions[i][3], self.transitions[i][4]), dtype=object)
+                samples.append(sample)
+        else:
+            samples = []
+            for i in self.inds:
+                sum_reward = 0
+                states_look_ahead = self.transitions[i][3]
+                done_look_ahead = self.transitions[i][4]
+
+                for n in range(self.n_multi_step):
+                    if len(self.transitions) > i+n:
+                        sum_reward += (self.discount ** n) * self.transitions[i+n][2]
+                        states_look_ahead = self.transitions[i+n][3]
+                        done_look_ahead = self.transitions[i+n][4]
+                        if done_look_ahead:
+                            break            
+                sample = np.asarray((self.transitions[i][0], self.transitions[i][1], sum_reward, states_look_ahead, done_look_ahead), dtype=object)
+                samples.append(sample)
+        return np.asarray(samples)
 
     def get_all_transitions(self):
         return self.transitions[0 : self.size]
@@ -161,6 +194,7 @@ class SumTree:
 
     def __repr__(self):
         return f"SumTree(nodes={self.nodes.__repr__()}, data={self.data.__repr__()})"
+
 
 
 class HindsightMemory:

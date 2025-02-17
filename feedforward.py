@@ -59,13 +59,20 @@ class QFunction(Feedforward):
 
     def Q_value(self, observations, actions):
         toret = self.forward(observations).gather(1, actions)
-        # print("Qvalhasnan", np.isnan(toret.detach().numpy()).any())
         return toret
-
+    
     def maxQ(self, observations):
         pred = self.predict(observations)
         return np.max(pred, axis=-1, keepdims=True)
         # keepdims for matrix multiplication later
+
+    def maxQactions(self, observations):
+        acts = self.predict(observations).argmax(dim=1, keepdim=True)
+        return acts
+    
+    def doubleQt(self, observations, actions):
+        toret = self.predict(observations).gather(1, actions)
+        return toret
 
     def greedyAction(self, observations):
         pred = self.predict(observations)
@@ -99,13 +106,16 @@ class DQNAgent(object):
             "learning_rate": 0.0002,
             "update_Qt_after": 10,
             "PrioritizedMemory": False,
+            "n_multi_step": None,
+            "use_noisy_nets": False,
+            "double": False
         }
         self._config.update(userconfig)
         self._eps = self._config["eps"]
         if self._config["PrioritizedMemory"]:
             self.buffer = PrioritizedMemory(max_size=self._config["buffer_size"])
         else:
-            self.buffer = Memory(max_size=self._config["buffer_size"])
+            self.buffer = Memory(n_multi_step=self._config["n_multi_step"], max_size=self._config["buffer_size"], discount=self._config["discount"])
 
         self.Q = QFunction(
             self._observation_space.shape[0],
@@ -122,12 +132,15 @@ class DQNAgent(object):
         self.Qt.load_state_dict(self.Q.state_dict())
 
     def act(self, observation, eps=None):
-        if eps is None:
-            eps = self._eps
-        if np.random.random() > eps:
+        if self._config["use_noisy_nets"]:
             action = self.Q.greedyAction(observation)
         else:
-            action = self._action_space.sample()
+            if eps is None:
+                eps = self._eps
+            if np.random.random() > eps:
+                action = self.Q.greedyAction(observation)
+            else:
+                action = self._action_space.sample()
         return action
 
     def store_transition(self, transition):
@@ -153,8 +166,18 @@ class DQNAgent(object):
             s_ = np.stack(sample[:, 3])  # s_t+1 (batchsize,3)
             done = np.stack(sample[:, 4])[:, None]  # done signal  (batchsize,1)
 
-            maxQtval = self.Qt.maxQ(s_)
-            targets = rew + (1 - done) * self._config["discount"] * maxQtval
+            if self._config["double"]:
+                actions_to_use = self.Q.maxQactions(s_)
+                Qtval = self.Qt.doubleQt(torch.tensor(s_, device=device, dtype=torch.float32), torch.tensor(actions_to_use, device=device))
+            else:
+                Qtval = self.Qt.maxQ(s_)
+
+            if self._config["n_multi_step"] == None:
+                targets = rew + (1 - done) * self._config["discount"] * Qtval
+            elif self._config["n_multi_step"] == "MonteCarlo":
+                targets = rew
+            else:
+                targets = rew + (1 - done) * (self._config["discount"] ** self._config["n_multi_step"]) * Qtval
             targets = torch.tensor(targets, device=device, dtype=torch.float32)
             # print("TARGETS SHAPE", targets.shape)
 
