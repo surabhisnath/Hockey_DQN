@@ -695,6 +695,8 @@ class HockeyEnv(gym.Env, EzPickle):
     def get_reward(self, info):
         r = self._compute_reward()
         r += info["reward_closeness_to_puck"]
+        r += info["reward_touch_puck"]
+        r += info["reward_puck_direction"]
         return float(r)
 
     def get_reward_agent_two(self, info_two):
