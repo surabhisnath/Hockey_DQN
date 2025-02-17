@@ -3,28 +3,82 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import *
 from memory import Memory, PrioritizedMemory
-
+from torch.nn.utils import clip_grad_norm_
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class Feedforward(torch.nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size):
-        super(Feedforward, self).__init__()
-        self.input_size = input_size
-        self.hidden_sizes = hidden_sizes
-        self.output_size = output_size
-        layer_sizes = [self.input_size] + self.hidden_sizes
-        self.layers = torch.nn.ModuleList(
-            [torch.nn.Linear(i, o) for i, o in zip(layer_sizes[:-1], layer_sizes[1:])]
-        )
-        self.activations = [torch.nn.Tanh() for l in self.layers]
-        self.readout = torch.nn.Linear(self.hidden_sizes[-1], self.output_size)
+# class Feedforward(torch.nn.Module):
+#     def __init__(self, input_size, hidden_sizes, output_size):
+#         super(Feedforward, self).__init__()
+#         self.input_size = input_size
+#         self.hidden_sizes = hidden_sizes
+#         self.output_size = output_size
+#         layer_sizes = [self.input_size] + self.hidden_sizes
+#         self.layers = torch.nn.ModuleList(
+#             [torch.nn.Linear(i, o) for i, o in zip(layer_sizes[:-1], layer_sizes[1:])]
+#         )
+#         self.activations = [torch.nn.Tanh() for l in self.layers]
+#         self.readout = torch.nn.Linear(self.hidden_sizes[-1], self.output_size)
 
-    def forward(self, x):
-        for layer, activation_fun in zip(self.layers, self.activations):
-            x = activation_fun(layer(x))
-        return self.readout(x)
+#     def forward(self, x):
+#         for layer, activation_fun in zip(self.layers, self.activations):
+#             x = activation_fun(layer(x))
+#         return self.readout(x)
+
+#     def predict(self, x):
+#         with torch.no_grad():
+#             return self.forward(torch.from_numpy(x.astype(np.float32))).numpy()
+
+
+class Feedforward(torch.nn.Module):
+    def __init__(self, input_size: int, hidden_size, output_size: int):
+        """Initialization."""
+        super(Feedforward, self).__init__()
+
+        self.layers = torch.nn.Sequential(
+            torch.nn.Linear(input_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, output_size),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.layers(x)
+
+    def predict(self, x):
+        with torch.no_grad():
+            return self.forward(torch.from_numpy(x.astype(np.float32))).numpy()
+
+
+class Dueling(torch.nn.Module):
+    def __init__(self, input_size: int, hidden_size, output_size: int):
+        """Initialization."""
+        super(Dueling, self).__init__()
+
+        self.feature_layer = torch.nn.Sequential(
+            torch.nn.Linear(input_size, hidden_size),
+            torch.nn.ReLU(),
+        )
+
+        self.advantage_layer = torch.nn.Sequential(
+            torch.nn.Linear(hidden_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, output_size),
+        )
+
+        self.value_layer = torch.nn.Sequential(
+            torch.nn.Linear(hidden_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, 1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        feature = self.feature_layer(x)
+        value = self.value_layer(feature)
+        advantage = self.advantage_layer(feature)
+        return value + advantage - advantage.mean(dim=-1, keepdim=True)
 
     def predict(self, x):
         with torch.no_grad():
@@ -37,7 +91,7 @@ class QFunction(Feedforward):
     ):
         super().__init__(
             input_size=observation_dim,
-            hidden_sizes=hidden_sizes,
+            hidden_size=100,
             output_size=action_dim,
         )
         self.optimizer = torch.optim.Adam(
@@ -54,6 +108,56 @@ class QFunction(Feedforward):
         loss = loss * weights
         loss = loss.mean()
         loss.backward()
+        self.optimizer.step()
+        return loss.item(), td_error
+
+    def Q_value(self, observations, actions):
+        toret = self.forward(observations).gather(1, actions)
+        return toret
+
+    def maxQ(self, observations):
+        pred = self.predict(observations)
+        return np.max(pred, axis=-1, keepdims=True)
+        # keepdims for matrix multiplication later
+
+    def maxQactions(self, observations):
+        acts = torch.from_numpy(self.predict(observations)).argmax(dim=1, keepdim=True)
+        return acts
+
+    def doubleQt(self, observations, actions):
+        toret = torch.from_numpy(self.predict(observations)).gather(1, actions)
+        return toret.numpy()
+
+    def greedyAction(self, observations):
+        pred = self.predict(observations)
+        return np.argmax(pred, axis=-1)
+        # do not actually need axis = -1 as pred will be 1D
+
+
+class QFunctionD(Dueling):
+    def __init__(
+        self, observation_dim, action_dim, hidden_sizes=[100, 100], learning_rate=0.0002
+    ):
+        super().__init__(
+            input_size=observation_dim,
+            hidden_size=100,
+            output_size=action_dim,
+        )
+        self.optimizer = torch.optim.Adam(
+            self.parameters(), lr=learning_rate, eps=0.000001
+        )
+        self.loss = torch.nn.SmoothL1Loss(reduction="none")
+
+    def fit(self, Qval, targets, weights):
+        weights = torch.tensor(weights, device=device, dtype=torch.float32)
+        self.train()  # put model in training mode
+        self.optimizer.zero_grad()
+        td_error = torch.abs(Qval - targets)
+        loss = self.loss(Qval, targets)
+        loss = loss * weights
+        loss = loss.mean()
+        loss.backward()
+        clip_grad_norm_(self.parameters(), 10.0)
         self.optimizer.step()
         return loss.item(), td_error
 
@@ -109,6 +213,7 @@ class DQNAgent(object):
             "n_multi_step": None,
             "use_noisy_nets": False,
             "double": False,
+            "dueling": False,
         }
         self._config.update(userconfig)
         self._eps = self._config["eps"]
@@ -121,16 +226,28 @@ class DQNAgent(object):
                 discount=self._config["discount"],
             )
 
-        self.Q = QFunction(
-            self._observation_space.shape[0],
-            self._action_n,
-            learning_rate=self._config["learning_rate"],
-        )
-        self.Qt = QFunction(
-            self._observation_space.shape[0],
-            self._action_n,
-            learning_rate=0,
-        )
+        if self._config["dueling"]:
+            self.Q = QFunctionD(
+                self._observation_space.shape[0],
+                self._action_n,
+                learning_rate=self._config["learning_rate"],
+            )
+            self.Qt = QFunctionD(
+                self._observation_space.shape[0],
+                self._action_n,
+                learning_rate=0,
+            )
+        else:
+            self.Q = QFunction(
+                self._observation_space.shape[0],
+                self._action_n,
+                learning_rate=self._config["learning_rate"],
+            )
+            self.Qt = QFunction(
+                self._observation_space.shape[0],
+                self._action_n,
+                learning_rate=0,
+            )
 
     def _update_target_net(self):
         self.Qt.load_state_dict(self.Q.state_dict())
