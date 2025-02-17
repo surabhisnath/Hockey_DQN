@@ -4,3 +4,4 @@
 __pycache__
 hockey/.ipynb_checkpoints
 hockey/__pycache__
+.env*
