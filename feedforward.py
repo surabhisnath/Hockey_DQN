@@ -60,19 +60,19 @@ class QFunction(Feedforward):
     def Q_value(self, observations, actions):
         toret = self.forward(observations).gather(1, actions)
         return toret
-    
+
     def maxQ(self, observations):
         pred = self.predict(observations)
         return np.max(pred, axis=-1, keepdims=True)
         # keepdims for matrix multiplication later
 
     def maxQactions(self, observations):
-        acts = self.predict(observations).argmax(dim=1, keepdim=True)
+        acts = torch.from_numpy(self.predict(observations)).argmax(dim=1, keepdim=True)
         return acts
-    
+
     def doubleQt(self, observations, actions):
-        toret = self.predict(observations).gather(1, actions)
-        return toret
+        toret = torch.from_numpy(self.predict(observations)).gather(1, actions)
+        return toret.numpy()
 
     def greedyAction(self, observations):
         pred = self.predict(observations)
@@ -108,14 +108,18 @@ class DQNAgent(object):
             "PrioritizedMemory": False,
             "n_multi_step": None,
             "use_noisy_nets": False,
-            "double": False
+            "double": False,
         }
         self._config.update(userconfig)
         self._eps = self._config["eps"]
         if self._config["PrioritizedMemory"]:
             self.buffer = PrioritizedMemory(max_size=self._config["buffer_size"])
         else:
-            self.buffer = Memory(n_multi_step=self._config["n_multi_step"], max_size=self._config["buffer_size"], discount=self._config["discount"])
+            self.buffer = Memory(
+                n_multi_step=self._config["n_multi_step"],
+                max_size=self._config["buffer_size"],
+                discount=self._config["discount"],
+            )
 
         self.Q = QFunction(
             self._observation_space.shape[0],
@@ -168,7 +172,10 @@ class DQNAgent(object):
 
             if self._config["double"]:
                 actions_to_use = self.Q.maxQactions(s_)
-                Qtval = self.Qt.doubleQt(torch.tensor(s_, device=device, dtype=torch.float32), torch.tensor(actions_to_use, device=device))
+                Qtval = self.Qt.doubleQt(
+                    s_,
+                    torch.tensor(actions_to_use, device=device),
+                )
             else:
                 Qtval = self.Qt.maxQ(s_)
 
@@ -177,7 +184,12 @@ class DQNAgent(object):
             elif self._config["n_multi_step"] == "MonteCarlo":
                 targets = rew
             else:
-                targets = rew + (1 - done) * (self._config["discount"] ** self._config["n_multi_step"]) * Qtval
+                targets = (
+                    rew
+                    + (1 - done)
+                    * (self._config["discount"] ** self._config["n_multi_step"])
+                    * Qtval
+                )
             targets = torch.tensor(targets, device=device, dtype=torch.float32)
             # print("TARGETS SHAPE", targets.shape)
 

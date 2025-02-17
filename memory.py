@@ -12,6 +12,8 @@ class Memory:
         self.max_size = max_size
         self.n_multi_step = n_multi_step
         self.discount = discount
+        self.max_steps = 500
+
     def add_transition(self, transitions_new):
         if self.size == 0:
             blank_buffer = [np.asarray(transitions_new, dtype=object)] * self.max_size
@@ -36,12 +38,25 @@ class Memory:
                 states_look_ahead = self.transitions[i][3]
                 done_look_ahead = self.transitions[i][4]
                 n = 0
-                print(done_look_ahead)
-                while(not done_look_ahead):
-                    sum_reward += (self.discount ** n) * self.transitions[i+n][2]
-                    done_look_ahead = self.transitions[i+n][4]
-                    print(done_look_ahead)
-                sample = np.asarray((self.transitions[i][0], self.transitions[i][1], sum_reward, self.transitions[i][3], self.transitions[i][4]), dtype=object)
+                while not done_look_ahead:
+                    if len(self.transitions) <= i + n:
+                        break
+                    epstep = self.transitions[i + n][6]
+                    if epstep == 0 and n > 0:
+                        break
+                    sum_reward += (self.discount**n) * self.transitions[i + n][2]
+                    done_look_ahead = self.transitions[i + n][4]
+                    n += 1
+                sample = np.asarray(
+                    (
+                        self.transitions[i][0],
+                        self.transitions[i][1],
+                        sum_reward,
+                        self.transitions[i][3],
+                        self.transitions[i][4],
+                    ),
+                    dtype=object,
+                )
                 samples.append(sample)
         else:
             samples = []
@@ -49,15 +64,27 @@ class Memory:
                 sum_reward = 0
                 states_look_ahead = self.transitions[i][3]
                 done_look_ahead = self.transitions[i][4]
-
                 for n in range(self.n_multi_step):
-                    if len(self.transitions) > i+n:
-                        sum_reward += (self.discount ** n) * self.transitions[i+n][2]
-                        states_look_ahead = self.transitions[i+n][3]
-                        done_look_ahead = self.transitions[i+n][4]
-                        if done_look_ahead:
-                            break            
-                sample = np.asarray((self.transitions[i][0], self.transitions[i][1], sum_reward, states_look_ahead, done_look_ahead), dtype=object)
+                    if len(self.transitions) <= i + n:
+                        break
+                    epstep = self.transitions[i + n][6]
+                    if epstep == 0 and n > 0:
+                        break
+                    sum_reward += (self.discount**n) * self.transitions[i + n][2]
+                    states_look_ahead = self.transitions[i + n][3]
+                    done_look_ahead = self.transitions[i + n][4]
+                    if done_look_ahead:
+                        break
+                sample = np.asarray(
+                    (
+                        self.transitions[i][0],
+                        self.transitions[i][1],
+                        sum_reward,
+                        states_look_ahead,
+                        done_look_ahead,
+                    ),
+                    dtype=object,
+                )
                 samples.append(sample)
         return np.asarray(samples)
 
@@ -180,8 +207,8 @@ class SumTree:
 
         # Ensure data_idx is within the real buffer
         if data_idx >= self.size:
-            print("CUMSUM:", float(cumsum), "TREEMAX:", float(self.nodes[0]))
-            print("INDEXVALUES", index_values)
+            # print("CUMSUM:", float(cumsum), "TREEMAX:", float(self.nodes[0]))
+            # print("INDEXVALUES", index_values)
             assert data_idx < self.size
 
         #     print(
@@ -194,7 +221,6 @@ class SumTree:
 
     def __repr__(self):
         return f"SumTree(nodes={self.nodes.__repr__()}, data={self.data.__repr__()})"
-
 
 
 class HindsightMemory:
