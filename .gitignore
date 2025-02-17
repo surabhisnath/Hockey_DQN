@@ -1,1 +1,6 @@
 .DS_Store
+.venv
+.ipynb_checkpoints
+__pycache__
+hockey/.ipynb_checkpoints
+hockey/__pycache__
