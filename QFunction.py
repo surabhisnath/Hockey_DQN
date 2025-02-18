@@ -1,40 +1,84 @@
 import torch
-import numpy
+import numpy as np
+from torch.nn.utils import clip_grad_norm_
+from feedforward import Feedforward, Feedforward_Dueling
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class QFunction(Feedforward):
-    def __init__(
-        self, observation_dim, action_dim, hidden_sizes=[100, 100], learning_rate=0.0002
-    ):
-        super().__init__(
-            input_size=observation_dim,
-            hidden_sizes=hidden_sizes,
-            output_size=action_dim,
-        )
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=learning_rate, eps=0.000001
-        )
-        self.loss = torch.nn.SmoothL1Loss()  # MSELoss()
+    def __init__(self, observation_dim, action_dim, config):
+        super().__init__(input_size=observation_dim, hidden_size=config["hiddensize"], output_size=action_dim, activation=config["activation"])
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=config["alpha"], eps=0.000001)
+        self.loss = torch.nn.SmoothL1Loss(reduction="none")
 
-    def fit(self, observations, actions, targets):
-        self.train()  # put model in training mode       # feedforward's function train()
+    def fit(self, Qval, targets, weights):
+        weights = torch.tensor(weights, device=device, dtype=torch.float32)
+        self.train()
         self.optimizer.zero_grad()
-        # Forward pass
-        acts = torch.from_numpy(actions)
-        pred = self.Q_value(torch.from_numpy(observations).float(), acts)
-        # Compute Loss
-        loss = self.loss(pred, torch.from_numpy(targets).float())
-
-        # Backward pass
+        td_error = torch.abs(Qval - targets)
+        loss = self.loss(Qval, targets)
+        loss = loss * weights
+        loss = loss.mean()
         loss.backward()
         self.optimizer.step()
-        return loss.item()
+        return loss.item(), td_error
 
     def Q_value(self, observations, actions):
-        return self.forward(observations).gather(1, actions[:, None])
+        toret = self.forward(observations).gather(1, actions)
+        return toret
 
     def maxQ(self, observations):
-        return np.max(self.predict(observations), axis=-1, keepdims=True)
+        pred = self.predict(observations)
+        return np.max(pred, axis=-1, keepdims=True)
+
+    def maxQactions(self, observations):
+        acts = torch.from_numpy(self.predict(observations)).argmax(dim=1, keepdim=True)
+        return acts
+
+    def doubleQt(self, observations, actions):
+        toret = torch.from_numpy(self.predict(observations)).gather(1, actions)
+        return toret.numpy()
 
     def greedyAction(self, observations):
-        return np.argmax(self.predict(observations), axis=-1)
+        pred = self.predict(observations)
+        return np.argmax(pred, axis=-1)
+
+
+class QFunction_Dueling(Feedforward_Dueling):
+    def __init__(self, observation_dim, action_dim, config):
+        super().__init__(input_size=observation_dim, hidden_size=config["hiddensize"], output_size=action_dim, activation=config["activation"])
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=config["alpha"], eps=0.000001)
+        self.loss = torch.nn.SmoothL1Loss(reduction="none")
+
+    def fit(self, Qval, targets, weights):
+        weights = torch.tensor(weights, device=device, dtype=torch.float32)
+        self.train()
+        self.optimizer.zero_grad()
+        td_error = torch.abs(Qval - targets)
+        loss = self.loss(Qval, targets)
+        loss = loss * weights
+        loss = loss.mean()
+        loss.backward()
+        clip_grad_norm_(self.parameters(), 10.0)        # difference
+        self.optimizer.step()
+        return loss.item(), td_error
+
+    def Q_value(self, observations, actions):
+        toret = self.forward(observations).gather(1, actions)
+        return toret
+
+    def maxQ(self, observations):
+        pred = self.predict(observations)
+        return np.max(pred, axis=-1, keepdims=True)
+
+    def maxQactions(self, observations):
+        acts = torch.from_numpy(self.predict(observations)).argmax(dim=1, keepdim=True)
+        return acts
+
+    def doubleQt(self, observations, actions):
+        toret = torch.from_numpy(self.predict(observations)).gather(1, actions)
+        return toret.numpy()
+
+    def greedyAction(self, observations):
+        pred = self.predict(observations)
+        return np.argmax(pred, axis=-1)

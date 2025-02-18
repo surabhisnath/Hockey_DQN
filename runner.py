@@ -3,13 +3,12 @@ from gymnasium import spaces
 import numpy as np
 import time
 import torch
-from feedforward import DQNAgent
 import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import hockey.hockey_env as h_env
 import argparse
-
+from agent import DQNAgent
 
 def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
@@ -72,32 +71,29 @@ def train(agent, env, numepisodes, numsteps):
             )
 
 
-def train_agent(args=None):
-    envname = args.env
+def train_agent(args_dict=None):
+    envname = args_dict["env"]
     if envname == "hockey":
         env = h_env.HockeyEnv()
     else:
         env = gym.make(envname)
         if isinstance(env.action_space, spaces.Box):
-            env = DiscreteActionWrapper(env, args.numdiscreteactions)
+            env = DiscreteActionWrapper(env, args_dict["numdiscreteactions"])
 
     o_space = env.observation_space
     a_space = env.action_space
     print(envname, o_space, a_space)
 
-    agent = DQNAgent(
-        o_space, a_space, 
-        eps=0.2, update_Qt_after=20, PrioritizedMemory=True
-    )
+    agent = DQNAgent(o_space, a_space, args_dict)
 
-    train(agent)
+    # train(agent)
 
-    if args.save:
-        save(agent)
-    if args.test:
-        test(agent)
-    if args.plot:
-        plot(agent)
+    # if args.save:
+    #     save(agent)
+    # if args.test:
+    #     test(agent)
+    # if args.plot:
+    #     plot(agent)
 
 
 if __name__ == "__main__":
@@ -113,14 +109,14 @@ if __name__ == "__main__":
     parser.add_argument("--per", action="store_true", help="Use Prioritized Experience Replay? (default: False)")
     parser.add_argument("--dueling", action="store_true", help="Use Dueling Network? (default: False)")
     parser.add_argument("--rnd", action="store_true", help="Use Random Network Distillation? (default: False)")
-    parser.add_argument("--multistep", type=str, default="None", help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".')
+    parser.add_argument("--multistep", type=str, default="None", help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".')      # cannot go with PER
 
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.002, help="Learning rate")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
-    parser.add_argument("--decayepsilon", type=int, choices=[0, 1, 2], default=0, help="Epsilon decay mode: 0 (no decay), 1 (linear), 2 (exponential)")
-    parser.add_argument("--minepsilon", type=float, default=0.005, help="If epsilon decay mode is 1 (linear) or 2 (exponential), what min value to decay to")
+    parser.add_argument("--decayepsilon", type=float, default=1, help="Decay factor. If 1, no decay")
+    parser.add_argument("--minepsilon", type=float, default=0.01, help="Minimum value of epsilon")
 
     # Memory:
     parser.add_argument("--buffersize", type=int, default=int(1e5), help="Memory buffer size")
@@ -132,6 +128,11 @@ if __name__ == "__main__":
     parser.add_argument("--numseeds", type=int, default=10, help="Number of seeds")
     parser.add_argument("--numepisodes", type=int, default=10000, help="Number of train episodes")
     parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
+    parser.add_argument("--update_Qt_after", type=int, default=20, help="Update target network after every")
+
+    # Hockey:
+    parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
+    parser.add_argument("--curriculum", action="store_true", help="Use curriculum learning (train shoot then defense then combination)? (default: False)")
 
     # Supp:
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("--noplot", action="store_false", dest="plot", help="Don't plot eval performance")
     parser.add_argument("--plotpath", default="../plots/", help="Path to save plots, unless --noplot")
 
-    # parser.add_argument("--verbose", action="store_true", help="Verbose prints? (default: False)")
+    parser.add_argument("--verbose", action="store_true", help="Verbose prints? (default: False)")
 
     args = parser.parse_args()
 
@@ -157,7 +158,9 @@ if __name__ == "__main__":
         args.multistep = int(args.multistep)
     else:
         raise ValueError(f"Invalid --multistep value: {args.multistep}")
+    
 
-    print(args)
+    args_dict = vars(args)
+    print(args_dict)
 
-    # train_agent(args=args)
+    # train_agent(args_dict)
