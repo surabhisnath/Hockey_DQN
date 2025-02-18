@@ -5,14 +5,15 @@ import random
 
 # class to store transitions
 class Memory:
-    def __init__(self, n_multi_step=None, max_size=100000, discount=0.95):
+    def __init__(self, config):
         self.transitions = np.asarray([])
         self.size = 0
         self.current_idx = 0
-        self.max_size = max_size
-        self.n_multi_step = n_multi_step
-        self.discount = discount
-        self.max_steps = 500
+        self.max_size = config["buffersize"]
+        self.batchsize = config["batchsize"]
+        self.multistep = config["multistep"]
+        self.discount = config["gamma"]
+        self.inds = []
 
     def add_transition(self, transitions_new):
         if self.size == 0:
@@ -25,13 +26,13 @@ class Memory:
         self.size = min(self.size + 1, self.max_size)
         self.current_idx = (self.current_idx + 1) % self.max_size
 
-    def sample(self, batch=1):
-        if batch > self.size:
-            batch = self.size
-        self.inds = np.random.choice(range(self.size), size=batch, replace=False)
-        if self.n_multi_step == None:
+    def sample(self):
+        if self.batchsize > self.size:
+            self.batchsize = self.size
+        self.inds = np.random.choice(range(self.size), size=self.batchsize, replace=False)
+        if self.multistep == None:
             samples = self.transitions[self.inds, :]
-        elif self.n_multi_step == "MonteCarlo":
+        elif self.multistep == "MonteCarlo":
             samples = []
             for i in self.inds:
                 sum_reward = 0
@@ -64,7 +65,7 @@ class Memory:
                 sum_reward = 0
                 states_look_ahead = self.transitions[i][3]
                 done_look_ahead = self.transitions[i][4]
-                for n in range(self.n_multi_step):
+                for n in range(self.multistep):
                     if len(self.transitions) <= i + n:
                         break
                     epstep = self.transitions[i + n][6]
@@ -93,17 +94,21 @@ class Memory:
 
 
 class PrioritizedMemory:
-    def __init__(self, max_size=100000, eps=1e-2, alpha=0.1, beta=0.1):
+    def __init__(self, config):
 
-        self.tree = SumTree(max_size=max_size)
+        self.tree = SumTree(max_size=config["buffersize"])
         self.transitions = np.asarray([])
         self.size = 0
         self.current_idx = 0
-        self.max_size = max_size
-        self.eps = eps  # minimal priority, prevents zero probabilities
-        self.alpha = alpha  # determines how much prioritization is used, α = 0 corresponding to the uniform case
-        self.beta = beta  # determines the amount of importance-sampling correction, b = 1 fully compensate for the non-uniform probabilities
-        self.max_priority = eps  # priority for new samples, init as eps
+        self.max_size = config["buffersize"]
+        self.batchsize = config["batchsize"]
+        self.multistep = config["multistep"]
+        self.discount = config["gamma"]
+
+        self.eps = 1e-2  # minimal priority, prevents zero probabilities
+        self.alpha = 0.5  # determines how much prioritization is used, α = 0 corresponding to the uniform case
+        self.beta = 0.5  # determines the amount of importance-sampling correction, b = 1 fully compensate for the non-uniform probabilities
+        self.max_priority = 1e-2  # priority for new samples, init as eps
 
     def add_transition(self, transitions_new):
         self.tree.add(self.max_priority, self.current_idx)
@@ -117,14 +122,14 @@ class PrioritizedMemory:
         self.current_idx = (self.current_idx + 1) % self.max_size
         self.size = min(self.max_size, self.size + 1)
 
-    def sample(self, batch=1):
-        if batch > self.size:
-            batch = self.size
+    def sample(self):
+        if self.batchsize > self.size:
+            self.batchsize = self.size
 
         sample_idxs, tree_idxs = [], []
-        priorities = torch.empty(batch, 1, dtype=torch.float)
-        segment = self.tree.total / batch
-        for i in range(batch):
+        priorities = torch.empty(self.batchsize, 1, dtype=torch.float)
+        segment = self.tree.total / self.batchsize
+        for i in range(self.batchsize):
             a, b = segment * i, segment * (i + 1)
             cumsum = random.uniform(a, b)
             tree_idx, priority, sample_idx = self.tree.get(cumsum)
@@ -221,31 +226,3 @@ class SumTree:
 
     def __repr__(self):
         return f"SumTree(nodes={self.nodes.__repr__()}, data={self.data.__repr__()})"
-
-
-class HindsightMemory:
-    def __init__(self, max_size=100000):
-        self.transitions = np.asarray([])
-        self.size = 0
-        self.current_idx = 0
-        self.max_size = max_size
-
-    def add_transition(self, transitions_new):
-        if self.size == 0:
-            blank_buffer = [np.asarray(transitions_new, dtype=object)] * self.max_size
-            self.transitions = np.asarray(blank_buffer)
-
-        self.transitions[self.current_idx, :] = np.asarray(
-            transitions_new, dtype=object
-        )
-        self.size = min(self.size + 1, self.max_size)
-        self.current_idx = (self.current_idx + 1) % self.max_size
-
-    def sample(self, batch=1):
-        if batch > self.size:
-            batch = self.size
-        self.inds = np.random.choice(range(self.size), size=batch, replace=False)
-        return self.transitions[self.inds, :]
-
-    def get_all_transitions(self):
-        return self.transitions[0 : self.size]
