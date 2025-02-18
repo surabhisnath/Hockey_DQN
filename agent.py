@@ -54,11 +54,6 @@ class DQNAgent(object):
     def train(self):
         self.train_iter += 1
 
-        # decay epsilon
-        self.config["epsilon"] = self.config["epsilon"] * self.config["epsilondecay"]
-        if self.config["epsilon"] < self.config["minepsilon"]:
-            self.config["epsilon"] = self.config["minepsilon"]
-
         if self.train_iter % self.config["update_Qt_after"] == 0:
             self._update_target_net()
         losses = []
@@ -95,4 +90,10 @@ class DQNAgent(object):
 
             if self.config["per"]:
                 self.buffer.update(inds, td_error.detach().numpy())
+        
+        # decay epsilon
+        self.config["epsilon"] = self.config["epsilon"] * self.config["epsilondecay"]
+        if self.config["epsilon"] < self.config["minepsilon"]:
+            self.config["epsilon"] = self.config["minepsilon"]
+            
         return losses
