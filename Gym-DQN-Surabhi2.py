@@ -101,136 +101,51 @@ def train_agent(args=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="RL_project",
-        description="Implements DQN and variation algorithms on various environments",
-    )
+
+    parser = argparse.ArgumentParser(prog="RL_project", description="Implements DQN and variation algorithms on various environments")
 
     # Environment:
-    parser.add_argument(
-        "--env", type=str, default="hockey", help="pendulum, cartpole, or hockey"
-    )
-    parser.add_argument(
-        "--numdiscreteactions",
-        type=int,
-        default=8,
-        help="For continuous action spaces, the number of actions to discretize. Ignored for discrete environments.",
-    )
+    parser.add_argument("--env", type=str, default="hockey", help="pendulum, cartpole, or hockey")
+    parser.add_argument("--numdiscreteactions", type=int, default=8, help="For continuous action spaces, the number of actions to discretize. Ignored for discrete environments.")
 
     # Algorithm:
-    parser.add_argument(
-        "--double", action="store_true", help="Use Double DQN? (default: False)"
-    )
-    parser.add_argument(
-        "--per",
-        action="store_true",
-        help="Use Prioritized Experience Replay? (default: False)",
-    )
-    parser.add_argument(
-        "--dueling", action="store_true", help="Use Dueling Network? (default: False)"
-    )
-    parser.add_argument(
-        "--rnd",
-        action="store_true",
-        help="Use Random Network Distillation? (default: False)",
-    )
-
-    # Handling multistep correctly:
-    parser.add_argument(
-        "--multistep",
-        type=str,
-        default="None",
-        help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".',
-    )
+    parser.add_argument("--double", action="store_true", help="Use Double DQN? (default: False)")
+    parser.add_argument("--per", action="store_true", help="Use Prioritized Experience Replay? (default: False)")
+    parser.add_argument("--dueling", action="store_true", help="Use Dueling Network? (default: False)")
+    parser.add_argument("--rnd", action="store_true", help="Use Random Network Distillation? (default: False)")
+    parser.add_argument("--multistep", type=str, default="None", help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".')
 
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.002, help="Learning rate")
-    parser.add_argument(
-        "--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy"
-    )
-    parser.add_argument(
-        "--decayepsilon",
-        type=int,
-        choices=[0, 1, 2],
-        default=0,
-        help="Epsilon decay mode: 0 (no decay), 1 (linear), 2 (exponential)",
-    )
-    parser.add_argument(
-        "--minepsilon",
-        type=float,
-        default=0.005,
-        help="if epsilon decay mode is 1 (linear) or 2 (exponential), what min value to decay to",
-    )
+    parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
+    parser.add_argument("--decayepsilon", type=int, choices=[0, 1, 2], default=0, help="Epsilon decay mode: 0 (no decay), 1 (linear), 2 (exponential)")
+    parser.add_argument("--minepsilon", type=float, default=0.005, help="If epsilon decay mode is 1 (linear) or 2 (exponential), what min value to decay to")
 
     # Memory:
-    parser.add_argument(
-        "--buffersize", type=int, default=int(1e5), help="memory buffer size"
-    )
-    parser.add_argument(
-        "--batchsize", type=int, default=128, help="sampling batch size"
-    )
+    parser.add_argument("--buffersize", type=int, default=int(1e5), help="Memory buffer size")
+    parser.add_argument("--batchsize", type=int, default=128, help="Sampling batch size")
 
     # Train:
-    parser.add_argument(
-        "--hiddensize", type=int, default=128, help="hidden layer dimensionality"
-    )
-    parser.add_argument(
-        "--activation", default="ReLU", help="activation function to use"
-    )
-
-    parser.add_argument(
-        "--numseeds", type=int, default=10, help="number of seeds"
-    )
-    parser.add_argument(
-        "--numepisodes", type=int, default=10000, help="number of train episodes"
-    )
-    parser.add_argument(
-        "--numsteps", type=int, default=500, help="number of steps per episode"
-    )
+    parser.add_argument("--hiddensize", type=int, default=128, help="Hidden layer dimensionality")
+    parser.add_argument("--activation", default="ReLU", help="Activation function to use")
+    parser.add_argument("--numseeds", type=int, default=10, help="Number of seeds")
+    parser.add_argument("--numepisodes", type=int, default=10000, help="Number of train episodes")
+    parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
 
     # Supp:
-    parser.add_argument(
-        "--save", action="store_true", default=True, help="saves model (default: True)"
-    )
-    parser.add_argument(
-        "--nosave", action="store_false", dest="save", help="don't save model"
-    )
-    parser.add_argument(
-        "--savepath", default="../saved/agent.pk", help="path to save model, unless --nosave"
-    )
+    parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
+    parser.add_argument("--nosave", action="store_false", dest="save", help="Don't save model")
+    parser.add_argument("--savepath", default="../saved/agent.pk", help="Path to save model, unless --nosave")
 
-    parser.add_argument(
-        "--test",
-        action="store_true",
-        default=True,
-        help="evaluates trained model (default: True)",
-    )
-    parser.add_argument(
-        "--notest", action="store_false", dest="test", help="don't evaluate model"
-    )
+    parser.add_argument("--test", action="store_true", default=True, help="Evaluates trained model (default: True)")
+    parser.add_argument("--notest", action="store_false", dest="test", help="Don't evaluate model")
 
-    parser.add_argument(
-        "--plot",
-        action="store_true",
-        default=True,
-        help="plots eval performance (default: True)",
-    )
-    parser.add_argument(
-        "--noplot",
-        action="store_false",
-        dest="plot",
-        help="don't plot eval performance",
-    )
-    parser.add_argument(
-        "--plotpath", default="../plots/", help="path to save plots, unless --noplot"
-    )
+    parser.add_argument("--plot", action="store_true", default=True, help="Plots eval performance (default: True)")
+    parser.add_argument("--noplot", action="store_false", dest="plot", help="Don't plot eval performance")
+    parser.add_argument("--plotpath", default="../plots/", help="Path to save plots, unless --noplot")
 
-    # parser.add_argument(
-    #     "--verbose",
-    #     action="store_true",
-    #     help="verbose prints? (default: False)",
-    # )
+    # parser.add_argument("--verbose", action="store_true", help="Verbose prints? (default: False)")
 
     args = parser.parse_args()
 
