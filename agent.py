@@ -63,7 +63,7 @@ class DQNAgent(object):
             self._update_target_net()
         losses = []
         for _ in range(self.config["fititerations"]):
-            if self.config["PrioritizedMemory"]:
+            if self.config["per"]:
                 sample, weights, inds = self.buffer.sample()
             else:
                 sample = self.buffer.sample()
@@ -93,6 +93,6 @@ class DQNAgent(object):
             fit_loss, td_error = self.Q.fit(Qvals, targets, weights)
             losses.append(fit_loss)
 
-            if self.config["PrioritizedMemory"]:
+            if self.config["per"]:
                 self.buffer.update(inds, td_error.detach().numpy())
         return losses

@@ -1,5 +1,6 @@
 import gymnasium as gym
 from gymnasium import spaces
+from gymnasium import *
 import numpy as np
 import time
 import torch
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="RL_project", description="Implements DQN and variation algorithms on various environments")
 
     # Environment:
-    parser.add_argument("--env", type=str, default="hockey", help="pendulum, cartpole, or hockey")
+    parser.add_argument("--env", type=str, default="CartPole-v0", help="pendulum, cartpole, or hockey")
     parser.add_argument("--numdiscreteactions", type=int, default=8, help="For continuous action spaces, the number of actions to discretize. Ignored for discrete environments.")
 
     # Algorithm:
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.002, help="Learning rate")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
-    parser.add_argument("--decayepsilon", type=float, default=1, help="Decay factor. If 1, no decay")
+    parser.add_argument("--epsilondecay", type=float, default=1, help="Decay factor. If 1, no decay")
     parser.add_argument("--minepsilon", type=float, default=0.01, help="Minimum value of epsilon")
 
     # Memory:
