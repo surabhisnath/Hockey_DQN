@@ -40,17 +40,32 @@ class DiscreteActionWrapper(gym.ActionWrapper):
         )
 
 
-def train(agent, env, numepisodes, numsteps):
+def train_agent(config):
+    envname = config["env"]
+    if envname == "hockey":
+        env = h_env.HockeyEnv()
+    else:
+        env = gym.make(envname)
+        if isinstance(env.action_space, spaces.Box):
+            env = DiscreteActionWrapper(env, config["numdiscreteactions"])
+
+    # o_space = env.observation_space
+    # a_space = env.action_space
+    # print(envname, o_space, a_space)
+
+    agent = DQNAgent(env.observation_space, env.action_space, config)
+
     episode_rewards = []
     cum_mean_episode_rewards = []
     losses = []
-    printevery = numepisodes // 20
+    printevery = config["numepisodes"] // 20
 
-    for i in range(numepisodes):
-        # print(f"Starting episode {i+1}")
+    for i in range(config["numepisodes"]):
+        if config["verbose"]:
+            print(f"Starting episode {i+1}")
         ob, _ = env.reset()
         total_reward = 0
-        for _ in range(numsteps):
+        for _ in range(config["numsteps"]):
             a = agent.act(ob)
             (ob_new, reward, done, _, _) = env.step(a)
             total_reward += reward
@@ -58,35 +73,18 @@ def train(agent, env, numepisodes, numsteps):
             ob = ob_new
             if done:
                 break
-
-        # print(f"Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
+        
+        if config["verbose"]:
+            print(f"Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
 
         episode_rewards.append(total_reward)
         cum_mean_episode_rewards.append(np.mean(episode_rewards[-printevery:]))
-        losses.append(np.mean(agent.train(1)))
+        losses.append(np.mean(agent.train()))
 
         if (i + 1) % printevery == 0:
             print(
                 f"{i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-printevery:])}"
             )
-
-
-def train_agent(args_dict=None):
-    envname = args_dict["env"]
-    if envname == "hockey":
-        env = h_env.HockeyEnv()
-    else:
-        env = gym.make(envname)
-        if isinstance(env.action_space, spaces.Box):
-            env = DiscreteActionWrapper(env, args_dict["numdiscreteactions"])
-
-    o_space = env.observation_space
-    a_space = env.action_space
-    print(envname, o_space, a_space)
-
-    agent = DQNAgent(o_space, a_space, args_dict)
-
-    # train(agent)
 
     # if args.save:
     #     save(agent)
@@ -128,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--numseeds", type=int, default=10, help="Number of seeds")
     parser.add_argument("--numepisodes", type=int, default=10000, help="Number of train episodes")
     parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
+    parser.add_argument("--fititerations", type=int, default=1, help="Number of fit iterations per episode")
     parser.add_argument("--update_Qt_after", type=int, default=20, help="Update target network after every")
 
     # Hockey:
@@ -160,7 +159,7 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid --multistep value: {args.multistep}")
     
 
-    args_dict = vars(args)
-    print(args_dict)
+    config = vars(args)
+    print(config)
 
-    # train_agent(args_dict)
+    train_agent(config)

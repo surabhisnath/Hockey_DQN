@@ -62,7 +62,7 @@ class DQNAgent(object):
         if self.train_iter % self.config["update_Qt_after"] == 0:
             self._update_target_net()
         losses = []
-        for i in range(self.config["fititerations"]):
+        for _ in range(self.config["fititerations"]):
             if self.config["PrioritizedMemory"]:
                 sample, weights, inds = self.buffer.sample()
             else:
