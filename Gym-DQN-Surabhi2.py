@@ -86,7 +86,8 @@ def train_agent(args=None):
     print(envname, o_space, a_space)
 
     agent = DQNAgent(
-        o_space, a_space, eps=0.2, update_Qt_after=20, PrioritizedMemory=True
+        o_space, a_space, 
+        eps=0.2, update_Qt_after=20, PrioritizedMemory=True
     )
 
     train(agent)
@@ -172,6 +173,16 @@ if __name__ == "__main__":
 
     # Train:
     parser.add_argument(
+        "--hiddensize", type=int, default=128, help="hidden layer dimensionality"
+    )
+    parser.add_argument(
+        "--activation", default="ReLU", help="activation function to use"
+    )
+
+    parser.add_argument(
+        "--numseeds", type=int, default=10, help="number of seeds"
+    )
+    parser.add_argument(
         "--numepisodes", type=int, default=10000, help="number of train episodes"
     )
     parser.add_argument(
@@ -183,7 +194,10 @@ if __name__ == "__main__":
         "--save", action="store_true", default=True, help="saves model (default: True)"
     )
     parser.add_argument(
-        "--no-save", action="store_false", dest="save", help="don't save model"
+        "--nosave", action="store_false", dest="save", help="don't save model"
+    )
+    parser.add_argument(
+        "--savepath", default="../saved/agent.pk", help="path to save model, unless --nosave"
     )
 
     parser.add_argument(
@@ -193,7 +207,7 @@ if __name__ == "__main__":
         help="evaluates trained model (default: True)",
     )
     parser.add_argument(
-        "--no-test", action="store_false", dest="test", help="don't evaluate model"
+        "--notest", action="store_false", dest="test", help="don't evaluate model"
     )
 
     parser.add_argument(
@@ -203,10 +217,13 @@ if __name__ == "__main__":
         help="plots eval performance (default: True)",
     )
     parser.add_argument(
-        "--no-plot",
+        "--noplot",
         action="store_false",
         dest="plot",
         help="don't plot eval performance",
+    )
+    parser.add_argument(
+        "--plotpath", default="../plots/", help="path to save plots, unless --noplot"
     )
 
     # parser.add_argument(

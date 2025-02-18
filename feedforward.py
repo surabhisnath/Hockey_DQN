@@ -202,6 +202,7 @@ class DQNAgent(object):
         self._action_space = action_space
         self._action_n = action_space.n
         self.train_iter = 1
+
         self._config = {
             "eps": 0.05,  # Epsilon in epsilon greedy policies
             "discount": 0.95,
@@ -215,6 +216,7 @@ class DQNAgent(object):
             "double": False,
             "dueling": False,
         }
+        
         self._config.update(userconfig)
         self._eps = self._config["eps"]
         if self._config["PrioritizedMemory"]:
