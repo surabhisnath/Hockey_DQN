@@ -34,8 +34,7 @@ class DQNAgent(object):
             self.Qt = QFunction(self._observation_space.shape[0], self._action_n, {**config, "alpha":0})
 
         if self.config["rnd"]:
-            self.rnd = RND(input_dim=self._observation_space.shape[0], 
-            output_dim=self._action_n, self.config)
+            self.rnd = RND(self._observation_space.shape[0], self._action_n, self.config)
 
         self._update_target_net() # added this to update target net at start
 
