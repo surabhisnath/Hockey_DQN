@@ -82,6 +82,7 @@ def train_agent(config):
     best_agent_seed = None
 
     for seed in range(config["numseeds"]):
+        seed = seed * 100
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
         
