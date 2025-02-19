@@ -27,7 +27,6 @@ def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
-
 class DiscreteActionWrapper(gym.ActionWrapper):
     def __init__(self, env: gym.Env, bins=5):
         """A wrapper for converting a 1D continuous actions into discrete ones.
@@ -272,7 +271,8 @@ def run(config):
             "seed": best_agent_seed
         }
         
-        with open(config["savepath"] + f"agent_{random_number()}.pk", "wb") as f:
+        ran_num = random_number()
+        with open(config["savepath"] + f"agent_{ran_num}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
     if config["test"]:
@@ -284,22 +284,22 @@ def run(config):
             except KeyError:
                 raise KeyError("Please provide a filename for the agent as --testfile ../saved/agent_(insert-number).pk") from None
 
-    if config["plot"]:
+    if config["train"] and config["plot"]:
         plt.figure()
         plt.plot(best_agent_cum_mean_episode_rewards)
         plt.xlabel("Episodes")
         plt.ylabel("Mean return across episodes")
-        plt.savefig(config["plotpath"] + "cum_mean_episode_rewards.png")
+        plt.savefig(config["plotpath"] + f"agent_{ran_num}_cum_mean_episode_rewards.png")
 
         plt.figure()
         plt.plot(running_mean(best_agent_episode_rewards,100))
         plt.xlabel("Training Episodes")
         plt.ylabel("Episode Return")
-        plt.savefig(config["plotpath"] + "episode_rewards.png")
+        plt.savefig(config["plotpath"] + f"agent_{ran_num}_episode_rewards.png")
 
         plt.figure()
         plt.plot(best_agent_losses)
-        plt.savefig(config["plotpath"] + "losses.png")
+        plt.savefig(config["plotpath"] + f"agent_{ran_num}_losses.png")
 
 if __name__ == "__main__":
 
