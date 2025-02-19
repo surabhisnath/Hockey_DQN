@@ -74,6 +74,8 @@ def train_agent(config):
     episode_wins = []
     cum_mean_episode_rewards = []
     losses = []
+    if config["rnd"]:
+        episode_intrinsic_rewards = []
     if config["numepisodes"] >= 20:
         printevery = config["numepisodes"] // 20
     else:
@@ -82,10 +84,12 @@ def train_agent(config):
     for i in range(config["numepisodes"]):
         if config["verbose"]:
             print(f"Starting episode {i+1}")
-        ob, _ = env.reset()
+        ob, info = env.reset()
         if envname == "hockey":
             ob2 = env.obs_agent_two()
         total_reward = 0
+        if config["rnd"]:
+            total_intrinsic_reward = 0
         for t in range(config["numsteps"]):
             a = agent.act(ob)
 
@@ -96,13 +100,25 @@ def train_agent(config):
                 else:
                     a2 = opponent.act(ob2)
                     # a2 = env.action(b)                                              # @Sahiti: DO WE NEED THIS? Or would it be a2 = opponent.act(ob2)
-                (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
+                (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))        # just opponent.act(ob2) is enough, coz a2 is continuous
                 episode_wins.append(info["winner"])
             else:
                 (ob_new, reward, done, _, _) = env.step(a)
             
             total_reward += reward
-            agent.store_transition((ob, a, reward, ob_new, done))
+
+            if config["rnd"]:
+                # get intrinsic rewards
+                reward_i = agent.rnd.intrinsic_reward(
+                    torch.from_numpy(ob.astype(np.float32))).detach().clamp(-1.0, 1.0).item()
+
+                # find combined reward
+                combined_reward = reward + reward_i
+                total_intrinsic_reward+= reward_i
+
+                agent.store_transition((ob, a, combined_reward, ob_new, done))
+            else:
+                agent.store_transition((ob, a, reward, ob_new, done))
             
             ob = ob_new
             ob2 = env.obs_agent_two()
@@ -114,6 +130,8 @@ def train_agent(config):
             print(f"Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
 
         episode_rewards.append(total_reward)
+        if config["rnd"]:
+            episode_intrinsic_rewards.append(total_intrinsic_reward)
         cum_mean_episode_rewards.append(np.mean(episode_rewards[-printevery:]))
         losses.append(np.mean(agent.train()))
 
@@ -213,8 +231,8 @@ if __name__ == "__main__":
 
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
-    parser.add_argument("--alpha", type=float, default=0.002, help="Learning rate")
-    parser.add_argument("--epsilon", type=float, default=1, help="Epsilon for epsilon greedy")
+    parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
+    parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
     parser.add_argument("--epsilondecay", type=float, default=0.98, help="Decay factor. If 1, no decay")
     parser.add_argument("--minepsilon", type=float, default=0.001, help="Minimum value of epsilon")
 
@@ -224,7 +242,7 @@ if __name__ == "__main__":
 
     # Train:
     parser.add_argument("--hiddensize", type=int, default=128, help="Hidden layer dimensionality")
-    parser.add_argument("--activation", default="ReLU", help="Activation function to use")
+    parser.add_argument("--activation", default="tanh", help="Activation function to use")
     parser.add_argument("--numseeds", type=int, default=10, help="Number of seeds")
     parser.add_argument("--numepisodes", type=int, default=20000, help="Number of train episodes")
     parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
