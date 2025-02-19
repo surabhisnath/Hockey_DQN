@@ -124,7 +124,6 @@ def train_agent(config):
                     else:
                         a2 = opponent.act(ob2)
                     (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
-                    episode_wins.append(info["winner"])
                 else:
                     (ob_new, reward, done, _, _) = env.step(a)
             
@@ -149,6 +148,7 @@ def train_agent(config):
             
                 if done:
                     break
+            episode_wins.append(info["winner"])
         
             if config["verbose"]:
                 print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
@@ -169,7 +169,10 @@ def train_agent(config):
         cum_mean_episode_rewards_seeds.append(cum_mean_episode_rewards)
         losses_seeds.append(losses)
 
-        eval_perf = test_agent(config, agent)
+        if envname == "hockey":
+            eval_perf = test_agent(config, agent, opponent)
+        else:
+            eval_perf = test_agent(config, agent)
         if eval_perf > best_agent_eval_perf:
             best_agent, best_agent_episode_rewards, best_agent_episode_wins, best_agent_cum_mean_episode_rewards, best_agent_losses, best_agent_eval_perf, best_agent_seed = agent, episode_rewards, episode_wins, cum_mean_episode_rewards, losses, eval_perf, seed
     
@@ -257,7 +260,8 @@ def run(config):
     if config["train"]:
         if config["env"] == "hockey":
             best_agent, best_agent_episode_rewards, best_agent_episode_wins, best_agent_cum_mean_episode_rewards, best_agent_losses, best_agent_eval_perf, best_agent_seed, opponent = train_agent(config)
-        best_agent, best_agent_episode_rewards, best_agent_episode_wins, best_agent_cum_mean_episode_rewards, best_agent_losses, best_agent_eval_perf, best_agent_seed = train_agent(config)
+        else:
+            best_agent, best_agent_episode_rewards, best_agent_episode_wins, best_agent_cum_mean_episode_rewards, best_agent_losses, best_agent_eval_perf, best_agent_seed = train_agent(config)
         
     if config["train"] and config["save"]:      # save only valid when train is True. For test without train, load agent from file
         save_dict = {
@@ -273,12 +277,15 @@ def run(config):
         }
         
         ran_num = random_number()
-        with open(config["savepath"] + f"agent_{ran_num}.pk", "wb") as f:
+        with open(config["savepath"] + f"agent_{config["env"]}_{best_agent_seed}_{ran_num}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
     if config["test"]:
         if config["train"]:
-            test_agent(config, best_agent)
+            if config["env"] == "hockey":
+                test_agent(config, best_agent, opponent)
+            else:
+                test_agent(config, best_agent)
         else:
             try:
                 test_agent(config, filename=config["testfile"])
@@ -320,7 +327,7 @@ if __name__ == "__main__":
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
-    parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
+    parser.add_argument("--epsilon", type=float, default=1, help="Epsilon for epsilon greedy")
     parser.add_argument("--epsilondecay", type=float, default=0.98, help="Decay factor. If 1, no decay")
     parser.add_argument("--minepsilon", type=float, default=0.001, help="Minimum value of epsilon")
 
