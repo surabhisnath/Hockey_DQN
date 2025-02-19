@@ -13,6 +13,13 @@ from collections import Counter
 from agent import DQNAgent
 import pickle
 from matplotlib import animation
+import json
+from random import randint
+
+def random_number(n=8):
+    range_start = 10**(n-1)
+    range_end = (10**n)-1
+    return randint(range_start, range_end)
 
 def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
@@ -119,11 +126,14 @@ def train_agent(config):
         save_dict = {
             "Q_state_dict": agent.Q.state_dict(),
             "Qt_state_dict": agent.Qt.state_dict(),
-            "config": agent.config
+            "config": agent.config,
+            "episode_rewards": episode_rewards,
+            "cum_mean_episode_rewards": cum_mean_episode_rewards,
+            "losses": losses
         }
         
-        with open(config["savepath"] + "agent.pth", "wb") as f:
-            pickle.dump(save_dict, f)
+        with open(config["savepath"] + f"agent_{random_number()}.json", "w") as f:
+            json.dump(save_dict, f)
 
     if config["test"]:
 
@@ -228,14 +238,14 @@ if __name__ == "__main__":
     # Supp:
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
     parser.add_argument("--nosave", action="store_false", dest="save", help="Don't save model")
-    parser.add_argument("--savepath", default="saved/", help="Path to save model, unless --nosave")
+    parser.add_argument("--savepath", default="../saved/", help="Path to save model, unless --nosave")
 
     parser.add_argument("--test", action="store_true", default=True, help="Evaluates trained model (default: True)")
     parser.add_argument("--notest", action="store_false", dest="test", help="Don't evaluate model")
 
     parser.add_argument("--plot", action="store_true", default=True, help="Plots eval performance (default: True)")
     parser.add_argument("--noplot", action="store_false", dest="plot", help="Don't plot eval performance")
-    parser.add_argument("--plotpath", default="plots/", help="Path to save plots, unless --noplot")
+    parser.add_argument("--plotpath", default="../plots/", help="Path to save plots, unless --noplot")
 
     parser.add_argument("--verbose", action="store_true", help="Verbose prints? (default: False)")
 
