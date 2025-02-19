@@ -112,10 +112,10 @@ if __name__ == "__main__":
 
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
-    parser.add_argument("--alpha", type=float, default=0.002, help="Learning rate")
+    parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
-    parser.add_argument("--epsilondecay", type=float, default=1, help="Decay factor. If 1, no decay")
-    parser.add_argument("--minepsilon", type=float, default=0.01, help="Minimum value of epsilon")
+    parser.add_argument("--epsilondecay", type=float, default=0.98, help="Decay factor. If 1, no decay")
+    parser.add_argument("--minepsilon", type=float, default=0.001, help="Minimum value of epsilon")
 
     # Memory:
     parser.add_argument("--buffersize", type=int, default=int(1e5), help="Memory buffer size")

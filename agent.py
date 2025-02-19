@@ -4,6 +4,7 @@ import gymnasium as gym
 from gymnasium import *
 from memory import Memory, PrioritizedMemory
 from Qfunction import QFunction, QFunction_Dueling
+from rnd import RND
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,6 +32,11 @@ class DQNAgent(object):
         else:
             self.Q = QFunction(self._observation_space.shape[0], self._action_n, config)
             self.Qt = QFunction(self._observation_space.shape[0], self._action_n, {**config, "alpha":0})
+
+        if self.config["rnd"]:
+            self.rnd = RND(input_dim=self._observation_space.shape[0], 
+            output_dim=self._action_n,
+            learning_rate = self.config["learning_rate_rnd"])
 
     def _update_target_net(self):
         self.Qt.load_state_dict(self.Q.state_dict())
