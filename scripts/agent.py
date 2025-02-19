@@ -82,7 +82,7 @@ class DQNAgent(object):
 
             if self.config["double"]:
                 actions_to_use = self.Q.maxQactions(s_)
-                Qtval = self.Qt.doubleQt(s_, torch.tensor(actions_to_use, device=device),)
+                Qtval = self.Qt.doubleQt(s_, torch.tensor(actions_to_use, device=device))
             else:
                 Qtval = self.Qt.maxQ(s_)
 
