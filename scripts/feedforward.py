@@ -1,3 +1,4 @@
+from regex import X
 import torch
 import numpy as np
 
@@ -49,10 +50,10 @@ class Feedforward(torch.nn.Module):
             torch.nn.Linear(hidden_size, hidden_size),
             activation_fn(),
             torch.nn.Linear(hidden_size, output_size),
-        )
+        ).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layers(x)
+        return self.layers(x.to(device))
 
     def predict(self, x):
         with torch.no_grad():
@@ -74,21 +75,22 @@ class Feedforward_Dueling(torch.nn.Module):
         self.feature_layer = torch.nn.Sequential(
             torch.nn.Linear(input_size, hidden_size),
             activation_fn(),
-        )
+        ).to(device)
 
         self.advantage_layer = torch.nn.Sequential(
             torch.nn.Linear(hidden_size, hidden_size),
             activation_fn(),
             torch.nn.Linear(hidden_size, output_size),
-        )
+        ).to(device)
 
         self.value_layer = torch.nn.Sequential(
             torch.nn.Linear(hidden_size, hidden_size),
             activation_fn(),
             torch.nn.Linear(hidden_size, 1),
-        )
+        ).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.to(device)
         feature = self.feature_layer(x)
         value = self.value_layer(feature)
         advantage = self.advantage_layer(feature)

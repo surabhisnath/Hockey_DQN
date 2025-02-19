@@ -226,7 +226,6 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         total_reward = 0
         for t in range(config["numsteps"]):
             # frames.append(env.render(mode="rgb_array"))     # uncomment to save gif
-            # env.render()
             done = False
             a = agent.act(ob)
             if envname == "hockey":
@@ -248,15 +247,6 @@ def test_agent(config, agent=None, opponent=None, filename=None):
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1]))) # to print test rewards
     if envname == "hockey":
         print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
-    
-    # env.close()
-    # plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
-    # patch = plt.imshow(frames[0])
-    # plt.axis('off')
-    # def animate(i):
-    #     patch.set_data(frames[i])
-    # anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=0.1)
-    # anim.save(config["savepath"] + 'gif.gif', writer='pillow', fps=500)
 
     return np.mean(test_stats_np[:,1])
 

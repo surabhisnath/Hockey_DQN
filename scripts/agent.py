@@ -27,11 +27,11 @@ class DQNAgent(object):
             self.buffer = Memory(config)
 
         if self.config["dueling"]:
-            self.Q = QFunction_Dueling(self._observation_space.shape[0], self._action_n, config)
-            self.Qt = QFunction_Dueling(self._observation_space.shape[0], self._action_n, {**config, "alpha":0})        # same config except alpha is 0
+            self.Q = QFunction_Dueling(self._observation_space.shape[0], self._action_n, config).to(device)
+            self.Qt = QFunction_Dueling(self._observation_space.shape[0], self._action_n, {**config, "alpha":0}).to(device)        # same config except alpha is 0
         else:
-            self.Q = QFunction(self._observation_space.shape[0], self._action_n, config)
-            self.Qt = QFunction(self._observation_space.shape[0], self._action_n, {**config, "alpha":0})
+            self.Q = QFunction(self._observation_space.shape[0], self._action_n, config).to(device)
+            self.Qt = QFunction(self._observation_space.shape[0], self._action_n, {**config, "alpha":0}).to(device)
 
         if self.config["rnd"]:
             self.rnd = RND(self._observation_space.shape[0], self._action_n, self.config)
