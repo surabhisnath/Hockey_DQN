@@ -9,7 +9,7 @@ class RND():
         self.predictor = Feedforward(input_size = input_dim, hidden_size=config["hiddensize"], 
                                   output_size = output_dim, activation="tanh")
         self.optimizer=torch.optim.Adam(self.predictor.parameters(), 
-                                        lr=config["alpha"], 
+                                        lr=config["alpha_rnd"], 
                                         eps=0.000001)
         self.loss = torch.nn.MSELoss()
 

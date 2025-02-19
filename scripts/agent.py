@@ -3,7 +3,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import *
 from memory import Memory, PrioritizedMemory
-from Qfunction import QFunction, QFunction_Dueling
+from QFunction import QFunction, QFunction_Dueling
 from rnd import RND
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -18,7 +18,7 @@ class DQNAgent(object):
         self._observation_space = observation_space
         self._action_space = action_space
         self._action_n = action_space.n
-        self.train_iter = 0 # train_iters should start at 0?
+        self.train_iter = 0 # changed to 0
         self.config = config
 
         if self.config["per"]: # why not use self.config in all these initialisations?
@@ -34,8 +34,7 @@ class DQNAgent(object):
             self.Qt = QFunction(self._observation_space.shape[0], self._action_n, {**config, "alpha":0})
 
         if self.config["rnd"]:
-            self.rnd = RND(input_dim=self._observation_space.shape[0], 
-            output_dim=self._action_n, self.config)
+            self.rnd = RND(self._observation_space.shape[0], self._action_n, self.config)
 
         self._update_target_net() # added this to update target net at start
 
@@ -68,7 +67,7 @@ class DQNAgent(object):
             if self.config["per"]:
                 sample, weights, inds = self.buffer.sample()
             else:
-                sample = self.buffer.sample() # how come in old code they pass batch size here?
+                sample = self.buffer.sample()
                 weights = np.ones((sample.shape[0], 1))
 
             s = np.stack(sample[:, 0])                  # s_t (batchsize,3)
@@ -95,9 +94,9 @@ class DQNAgent(object):
                 targets = (rew + (1 - done) * (self.config["gamma"] ** self.config["multistep"]) * Qtval)
             targets = torch.tensor(targets, device=device, dtype=torch.float32)
             Qvals = self.Q.Q_value(torch.tensor(s, device=device, dtype=torch.float32), 
-                                   torch.tensor(a, device=device),) # bit confusing to call this Qvals
+                                   torch.tensor(a, device=device),)
 
-            fit_loss, td_error = self.Q.fit(Qvals, targets, weights) # what are the weights?
+            fit_loss, td_error = self.Q.fit(Qvals, targets, weights)
             losses.append(fit_loss)
 
             if self.config["per"]:
