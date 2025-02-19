@@ -14,7 +14,7 @@ import hockey.hockey_env as h_env
 import argparse
 from collections import Counter
 from agent import DQNAgent
-import pickle
+import pickle as pk
 from matplotlib import animation
 from random import randint
 
@@ -50,7 +50,6 @@ class DiscreteActionWrapper(gym.ActionWrapper):
         return self.orig_action_space.low + action / (self.bins - 1.0) * (
             self.orig_action_space.high - self.orig_action_space.low
         )
-
 
 def train_agent(config):
     envname = config["env"]
@@ -149,7 +148,9 @@ def train_agent(config):
             
                 if done:
                     break
-            episode_wins.append(info["winner"])
+
+            if envname == "hockey":
+                episode_wins.append(info["winner"])
         
             if config["verbose"]:
                 print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
@@ -217,6 +218,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
 
     # frames = []
     test_stats = []
+    wins = []
     for i in range(config["numtestepisodes"]):
         ob, _ = env.reset()
         if envname == "hockey":
@@ -230,7 +232,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             if envname == "hockey":
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
-                (ob_new, reward, done, _, _) = env.step(np.hstack([a1,a2]))
+                (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
             else:
                 (ob_new, reward, done, _, _) = env.step(a)
             ob=ob_new
@@ -240,10 +242,13 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             if done:
                 break
         test_stats.append([i, total_reward, t+1])
+        wins.append(info["winner"])
 
     test_stats_np = np.array(test_stats)
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), 
                                                     np.std(test_stats_np[:,1]))) # to print test rewards
+    if envname == "hockey":
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
     
     # env.close()
     # plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
@@ -281,8 +286,8 @@ def run(config):
         with open(config["savepath"] + f"agent_{config["env"]}_{best_agent_seed}_{ran_num}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
-        torch.save(agent.Q.state_dict(), 
-            f'./saved/{config["env"]}-seed{best_agent_seed}.pth')
+        torch.save(best_agent.Q.state_dict(), 
+            f'../saved/{config['env']}-seed{best_agent_seed}_{ran_num}.pth')
 
     if config["test"]:
         if config["train"]:
