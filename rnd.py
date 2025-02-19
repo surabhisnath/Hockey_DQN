@@ -3,14 +3,13 @@ import numpy as np
 from feedforward import Feedforward
 
 class RND():
-    def __init__(self, input_dim, output_dim, hidden_dim=[100,100],
-                 learning_rate = 0.0001):
-        self.target = Feedforward(input_size = input_dim, hidden_sizes=hidden_dim, 
-                                  output_size = output_dim)
-        self.predictor = Feedforward(input_size = input_dim, hidden_sizes=hidden_dim, 
-                                  output_size = output_dim)
+    def __init__(self, input_dim, output_dim, config):
+        self.target = Feedforward(input_size = input_dim, hidden_size=config["hiddensize"], 
+                                  output_size = output_dim, activation="tanh")
+        self.predictor = Feedforward(input_size = input_dim, hidden_size=config["hiddensize"], 
+                                  output_size = output_dim, activation="tanh")
         self.optimizer=torch.optim.Adam(self.predictor.parameters(), 
-                                        lr=learning_rate, 
+                                        lr=config["alpha"], 
                                         eps=0.000001)
         self.loss = torch.nn.MSELoss()
 
