@@ -42,12 +42,12 @@ class DQNAgent(object):
     def _update_target_net(self):
         self.Qt.load_state_dict(self.Q.state_dict())
 
-    def act(self, observation):
+    def act(self, observation, eps):
         # if self.config["use_noisy_nets"]:
         #     action = self.Q.greedyAction(observation)
         # else:
 
-        eps = self.config["epsilon"]
+        # eps = self.config["epsilon"]
 
         if np.random.random() > eps:
             action = self.Q.greedyAction(observation)
@@ -104,8 +104,8 @@ class DQNAgent(object):
                 self.buffer.update(inds, td_error.detach().cpu().numpy())
         
         # decay epsilon
-        self.config["epsilon"] = self.config["epsilon"] * self.config["epsilondecay"]
-        if self.config["epsilon"] < self.config["minepsilon"]:
-            self.config["epsilon"] = self.config["minepsilon"]
+        # self.config["epsilon"] = self.config["epsilon"] * self.config["epsilondecay"]
+        # if self.config["epsilon"] < self.config["minepsilon"]:
+        #    self.config["epsilon"] = self.config["minepsilon"]
             
         return losses

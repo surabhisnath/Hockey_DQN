@@ -83,9 +83,13 @@ def train_agent(config):
 
     for seed in range(config["numseeds"]):
         seed = seed * 100
+        print(f"Config for seed {seed}:")
+        print(config["epsilon"])
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
         
+        eps = config["epsilon"]
+
         if envname == "hockey" and config["opponent"] == "weak":
             opponent = h_env.BasicOpponent(weak=True)
         if envname == "hockey" and config["opponent"] == "strong":
@@ -113,9 +117,10 @@ def train_agent(config):
                 ob2 = env.obs_agent_two()
             total_reward = 0
             if config["rnd"]:
+                list_rew_i = []
                 total_intrinsic_reward = 0
             for t in range(config["numsteps"]):
-                a = agent.act(ob)
+                a = agent.act(ob, eps)
 
                 if envname == "hockey":
                     a1 = env.action(a)
@@ -132,11 +137,18 @@ def train_agent(config):
                 if config["rnd"]:
                     # get intrinsic rewards
                     reward_i = agent.rnd.intrinsic_reward(
-                        torch.from_numpy(ob.astype(np.float32))).detach().clamp(-1.0, 1.0).item()
-
+                        torch.from_numpy(ob.astype(np.float32))).detach().item() #.clamp(-1.0, 1.0)
+                    list_rew_i.append(reward_i)
                     # find combined reward
-                    combined_reward = reward + reward_i
-                    total_intrinsic_reward += reward_i
+                    if t==0:
+                        combined_reward = reward + reward_i
+                        total_intrinsic_reward+= reward_i
+                    elif t>0:
+                        # normalise intrinsic rewards by running std
+                        # random = np.random.rand() * 10 # for control with random intrinsic reward
+                        reward_i_norm = reward_i/np.std(list_rew_i) # normalised intrinsic reward
+                        combined_reward = reward + reward_i_norm
+                        total_intrinsic_reward+= reward_i_norm
                     agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
 
                 else:
@@ -165,7 +177,12 @@ def train_agent(config):
                 print(f"Seed: {seed}. {i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-numprints:])}", flush=True)
                 if envname == "hockey":
                     print(f"Seed: {seed}. {i+1} episodes completed: Fraction wins: {Counter(episode_wins[-numprints:])[1]/numprints}, Fraction draws: {Counter(episode_wins[-numprints:])[0]/numprints}, Fraction losses: {Counter(episode_wins[-numprints:])[-1]/numprints}", flush=True)
-        
+           
+            # decay epsilon
+            eps = eps * config["epsilondecay"]
+            if eps < config["minepsilon"]:
+                eps = config["minepsilon"]
+
         episode_rewards_seeds.append(episode_rewards)
         episode_wins_seeds.append(episode_wins)
         cum_mean_episode_rewards_seeds.append(cum_mean_episode_rewards)
@@ -227,7 +244,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         for t in range(config["numsteps"]):
             # frames.append(env.render(mode="rgb_array"))     # uncomment to save gif
             done = False
-            a = agent.act(ob)
+            a = agent.act(ob, 0)
             if envname == "hockey":
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
@@ -277,11 +294,11 @@ def run(config):
             savenum = random_number()
 
         os.makedirs(config["savepath"], exist_ok=True)
-        with open(config["savepath"] + f"agent_{config["env"]}_{best_agent_seed}_{savenum}.pk", "wb") as f:
+        with open(config["savepath"] + f"agent_{config['env']}_{best_agent_seed}_{savenum}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
         torch.save(best_agent.Q.state_dict(), 
-            f'../saved/{config["env"]}-seed{best_agent_seed}_{savenum}.pth')
+            f"../saved/agent_{config['env']}_{best_agent_seed}_{savenum}.pth")
 
     if config["test"]:
         if config["train"]:
