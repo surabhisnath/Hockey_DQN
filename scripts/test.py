@@ -1,3 +1,4 @@
+from pickletools import optimize
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium import *
@@ -7,13 +8,41 @@ import torch
 import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-import hockey.hockey_env as h_env
 import argparse
 from collections import Counter
 from agent import DQNAgent
 import pickle
 from matplotlib import animation
 from PIL import Image
+import sys
+import os
+import imageio.v2 as imageio
+sys.path.append(os.path.abspath("../"))
+import hockey.hockey_env as h_env
+
+class DiscreteActionWrapper(gym.ActionWrapper):
+    def __init__(self, env: gym.Env, bins=5):
+        """A wrapper for converting a 1D continuous actions into discrete ones.
+        Args:
+            env: The environment to apply the wrapper
+            bins: number of discrete actions
+        """
+        assert isinstance(env.action_space, spaces.Box)
+        super().__init__(env)
+        self.bins = bins
+        self.orig_action_space = env.action_space
+        self.action_space = spaces.Discrete(self.bins)
+
+    def action(self, action):
+        """discrete actions from low to high in 'bins'
+        Args:
+            action: The discrete action
+        Returns:
+            continuous action
+        """
+        return self.orig_action_space.low + action / (self.bins - 1.0) * (
+            self.orig_action_space.high - self.orig_action_space.low
+        )
 
 def test_agent(config):
  
@@ -26,9 +55,9 @@ def test_agent(config):
         if render_mode is not None:
             print("overwrite render-mode to image")
         render_mode = "rgb_array"
-        import os
-        os.makedirs('./gif', exist_ok=True)
-        print("to get a gif for episode 1 run \"convert -delay 1x30 ./gif/01_* ep01.gif\"")
+        
+        os.makedirs('../gifs', exist_ok=True)
+        print("to get a gif for episode 1 run \"convert -delay 1x30 ../gifs/01_* ep01.gif\"")
 
     # opponent for hockey
     if envname == "hockey" and config["opponent"] == "weak":
@@ -40,7 +69,8 @@ def test_agent(config):
 
     # create environment
     if envname == "hockey":
-        env = h_env.HockeyEnv(render_mode = render_mode)
+        env = h_env.HockeyEnv()
+        # env.render(mode=render_mode)
         env.discretize_actions(config["numdiscreteactions"])
     else:
         env = gym.make(envname, render_mode = render_mode)
@@ -49,11 +79,13 @@ def test_agent(config):
 
     # create and load agent
     agent = DQNAgent(env.observation_space, env.action_space, config)
-    agent.Q.load_state_dict(torch.load(filename))
+    agent.Q.load_state_dict(torch.load("../saved/" + filename))
 
     # test agent
     test_stats = []
-    for i in range(config["numepisodes"]):
+    frames = []
+    wins = []
+    for i in range(config["numtestepisodes"]):
         ob, _ = env.reset()
         if envname == "hockey":
             ob2 = env.obs_agent_two()
@@ -64,25 +96,31 @@ def test_agent(config):
             if envname == "hockey":
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
-                (ob_new, reward, done, _, _) = env.step(np.hstack([a1,a2]))
+                (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
             else:
                 (ob_new, reward, done, _, _) = env.step(a)
             ob=ob_new
             total_reward+= reward
-            if save_gif:
-                 img = env.render()
-                 img = Image.fromarray(img)
-                 img.save(f'./gif/{i:02}-{t:03}.jpg')
+            if save_gif and i < 20:
+                img = env.render(mode=render_mode)
+                img = Image.fromarray(img)
+                frames.append(img.resize((img.width // 2, img.height // 2)))
             if envname == "hockey":
                 ob2 = env.obs_agent_two()
             if done:
                 break
         test_stats.append([i,total_reward,t+1])
+        wins.append(info["winner"])
+
+    if save_gif:
+        # frames[0].save("../gifs/" + filename[:-3] + "gif", save_all=True, append_images=frames[1:], duration=10, loop=0, optimize=True)
+        imageio.mimsave("../gifs/" + filename[:-3] + "gif", frames, duration=0.01)
 
     test_stats_np = np.array(test_stats)
-    print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), 
-                                                    np.std(test_stats_np[:,1])))  
-
+    print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1])))
+    if envname == "hockey":
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
+    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog="RL_project", description="Implements DQN and variation algorithms on various environments")
@@ -113,7 +151,7 @@ if __name__ == "__main__":
     # Test:
     parser.add_argument("--hiddensize", type=int, default=100, help="Hidden layer dimensionality")
     parser.add_argument("--activation", default="tanh", help="Activation function to use")
-    parser.add_argument("--numepisodes", type=int, default=50, help="Number of test episodes")
+    parser.add_argument("--numtestepisodes", type=int, default=50, help="Number of test episodes")
     parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
     parser.add_argument("--render", action="store_true", help="Render the environment?")
     parser.add_argument("--filename", type=str, help="Model filename to load")
@@ -137,6 +175,3 @@ if __name__ == "__main__":
     print(config)
 
     test_agent(config)
-
-
-

@@ -51,7 +51,6 @@ class DiscreteActionWrapper(gym.ActionWrapper):
             self.orig_action_space.high - self.orig_action_space.low
         )
 
-
 def train_agent(config):
     envname = config["env"]
     if envname == "hockey":
@@ -150,7 +149,7 @@ def train_agent(config):
                 if done:
                     break
 
-            if envname == "hockey":    
+            if envname == "hockey":
                 episode_wins.append(info["winner"])
         
             if config["verbose"]:
@@ -219,6 +218,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
 
     # frames = []
     test_stats = []
+    wins = []
     for i in range(config["numtestepisodes"]):
         ob, _ = env.reset()
         if envname == "hockey":
@@ -226,13 +226,12 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         total_reward = 0
         for t in range(config["numsteps"]):
             # frames.append(env.render(mode="rgb_array"))     # uncomment to save gif
-            # env.render()
             done = False
             a = agent.act(ob)
             if envname == "hockey":
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
-                (ob_new, reward, done, _, _) = env.step(np.hstack([a1,a2]))
+                (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
             else:
                 (ob_new, reward, done, _, _) = env.step(a)
             ob=ob_new
@@ -242,23 +241,17 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             if done:
                 break
         test_stats.append([i, total_reward, t+1])
+        wins.append(info["winner"])
 
     test_stats_np = np.array(test_stats)
-    print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), 
-                                                    np.std(test_stats_np[:,1]))) # to print test rewards
-    
-    # env.close()
-    # plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
-    # patch = plt.imshow(frames[0])
-    # plt.axis('off')
-    # def animate(i):
-    #     patch.set_data(frames[i])
-    # anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=0.1)
-    # anim.save(config["savepath"] + 'gif.gif', writer='pillow', fps=500)
+    print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1]))) # to print test rewards
+    if envname == "hockey":
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
 
     return np.mean(test_stats_np[:,1])
 
 def run(config):
+    savenum = config["savenum"]
 
     if config["train"]:
         if config["env"] == "hockey":
@@ -279,12 +272,15 @@ def run(config):
             "seed": best_agent_seed
         }
         
-        ran_num = random_number()
-        with open(config['savepath'] + f"agent_{config['env']}_{best_agent_seed}_{ran_num}.pk", "wb") as f:
+        if savenum is None:
+            savenum = random_number()
+
+        os.makedirs(config["savepath"], exist_ok=True)
+        with open(config["savepath"] + f"agent_{config["env"]}_{best_agent_seed}_{savenum}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
-        torch.save(best_agent.Q.state_dict(),
-                   f'../saved/{config["env"]}-seed{best_agent_seed}_{ran_num}.pth')
+        torch.save(best_agent.Q.state_dict(), 
+            f'../saved/{config["env"]}-seed{best_agent_seed}_{savenum}.pth')
 
     if config["test"]:
         if config["train"]:
@@ -299,21 +295,28 @@ def run(config):
                 raise KeyError("Please provide a filename for the agent as --testfile ../saved/agent_(insert-number).pk") from None
 
     if config["train"] and config["plot"]:
+        os.makedirs(config["plotpath"], exist_ok=True)
+
         plt.figure()
         plt.plot(best_agent_cum_mean_episode_rewards)
         plt.xlabel("Episodes")
         plt.ylabel("Mean return across episodes")
-        plt.savefig(config["plotpath"] + f"agent_{ran_num}_cum_mean_episode_rewards.png")
+        plt.savefig(config["plotpath"] + f"agent_{savenum}_cum_mean_episode_rewards.png")
 
         plt.figure()
         plt.plot(running_mean(best_agent_episode_rewards,100))
         plt.xlabel("Training Episodes")
         plt.ylabel("Episode Return")
-        plt.savefig(config["plotpath"] + f"agent_{ran_num}_episode_rewards.png")
+        plt.savefig(config["plotpath"] + f"agent_{savenum}_episode_rewards.png")
 
         plt.figure()
         plt.plot(best_agent_losses)
-        plt.savefig(config["plotpath"] + f"agent_{ran_num}_losses.png")
+        plt.xlabel("Training Episodes")
+        plt.ylabel("Loss")
+        plt.savefig(config["plotpath"] + f"agent_{savenum}_losses.png")
+
+    print(config)
+    print(f"Random number: {savenum}")
 
 if __name__ == "__main__":
 
@@ -359,10 +362,10 @@ if __name__ == "__main__":
     parser.add_argument("--curriculum", action="store_true", help="Use curriculum learning (train shoot then defense then combination)? (default: False)")
 
     # Supp:
-
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
     parser.add_argument("--nosave", action="store_false", dest="save", help="Don't save model")
     parser.add_argument("--savepath", default="../saved/", help="Path to save model, unless --nosave")
+    parser.add_argument("--savenum", type=int, default=None, help="Number to append to the saved model")
 
     parser.add_argument("--test", action="store_true", default=True, help="Evaluates trained model (default: True)")
     parser.add_argument("--testfilename", help="Evaluates trained model (default: True)")
@@ -384,7 +387,6 @@ if __name__ == "__main__":
         args.multistep = int(args.multistep)
     else:
         raise ValueError(f"Invalid --multistep value: {args.multistep}")
-    
 
     config = vars(args)
     print(config)

@@ -7,3 +7,4 @@ hockey/__pycache__
 .env*
 saved/
 plots/
+gifs/
