@@ -1,4 +1,3 @@
-from regex import X
 import torch
 import numpy as np
 
@@ -57,7 +56,7 @@ class Feedforward(torch.nn.Module):
 
     def predict(self, x):
         with torch.no_grad():
-            return self.forward(torch.from_numpy(x.astype(np.float32))).numpy()
+            return self.forward(torch.from_numpy(x.astype(np.float32))).cpu().numpy()
 
 
 class Feedforward_Dueling(torch.nn.Module):

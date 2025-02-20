@@ -1,7 +1,5 @@
 matplotlib
 numpy
-box2d-py
-swig
 pygame
 gymnasium
 tensorboardx
@@ -13,3 +11,5 @@ ipympl
 # --extra-index-url https://pypi.org/simple
 torch
 imageio
+# swig
+# box2d-py
