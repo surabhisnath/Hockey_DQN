@@ -112,6 +112,7 @@ def train_agent(config):
             if envname == "hockey":
                 ob2 = env.obs_agent_two()
             total_reward = 0
+            list_rew_i = []
             if config["rnd"]:
                 total_intrinsic_reward = 0
             for t in range(config["numsteps"]):
@@ -132,11 +133,18 @@ def train_agent(config):
                 if config["rnd"]:
                     # get intrinsic rewards
                     reward_i = agent.rnd.intrinsic_reward(
-                        torch.from_numpy(ob.astype(np.float32))).detach().clamp(-1.0, 1.0).item()
-
+                        torch.from_numpy(ob.astype(np.float32))).detach().item() #.clamp(-1.0, 1.0)
+                    list_rew_i.append(reward_i)
                     # find combined reward
-                    combined_reward = reward + reward_i
-                    total_intrinsic_reward += reward_i
+                    if t==0:
+                        combined_reward = reward + reward_i
+                        total_intrinsic_reward+= reward_i
+                    elif t>0:
+                        # normalise intrinsic rewards by running std
+                        # random = np.random.rand() * 10 # for control with random intrinsic reward
+                        reward_i_norm = reward_i/np.std(list_rew_i) # normalised intrinsic reward
+                        combined_reward = reward + reward_i_norm
+                        total_intrinsic_reward+= reward_i_norm
                     agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
 
                 else:
@@ -217,6 +225,8 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         pass
 
     # frames = []
+    # make epsilon 0 for testing
+    config["epsilon"] = 0.0
     test_stats = []
     wins = []
     for i in range(config["numtestepisodes"]):
@@ -247,7 +257,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
     test_stats_np = np.array(test_stats)
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1])), flush=True) # to print test rewards
     if envname == "hockey":
-        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}", flush=True)
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config['numtestepisodes']}, Fraction draws: {Counter(wins)[0]/config['numtestepisodes']}, Fraction losses: {Counter(wins)[-1]/config['numtestepisodes']}", flush=True)
 
     return np.mean(test_stats_np[:,1])
 
@@ -277,7 +287,7 @@ def run(config):
             savenum = random_number()
 
         os.makedirs(config["savepath"], exist_ok=True)
-        with open(config["savepath"] + f"agent_{config["env"]}_{best_agent_seed}_{savenum}.pk", "wb") as f:
+        with open(config["savepath"] + f"agent_{config['env']}_{best_agent_seed}_{savenum}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
         torch.save(best_agent.Q.state_dict(), 
@@ -337,9 +347,9 @@ if __name__ == "__main__":
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
-    parser.add_argument("--alpha_rnd", type=float, default=0.0001, help="Learning rate for RND target network")
+    parser.add_argument("--alpha_rnd", type=float, default=0.001, help="Learning rate for RND target network")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
-    parser.add_argument("--epsilondecay", type=float, default=0.98, help="Decay factor. If 1, no decay")
+    parser.add_argument("--epsilondecay", type=float, default=1.0, help="Decay factor. If 1, no decay")
     parser.add_argument("--minepsilon", type=float, default=0.001, help="Minimum value of epsilon")
 
     # Memory:

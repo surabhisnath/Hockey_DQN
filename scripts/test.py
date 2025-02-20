@@ -84,7 +84,8 @@ def test_agent(config):
     # test agent
     test_stats = []
     frames = []
-    wins = []
+    if envname == "hockey":
+        wins = []
     for i in range(config["numtestepisodes"]):
         ob, _ = env.reset()
         if envname == "hockey":
@@ -110,7 +111,8 @@ def test_agent(config):
             if done:
                 break
         test_stats.append([i,total_reward,t+1])
-        wins.append(info["winner"])
+        if envname == "hockey":
+            wins.append(info["winner"])
 
     if save_gif:
         # frames[0].save("../gifs/" + filename[:-3] + "gif", save_all=True, append_images=frames[1:], duration=10, loop=0, optimize=True)
@@ -119,7 +121,7 @@ def test_agent(config):
     test_stats_np = np.array(test_stats)
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1])))
     if envname == "hockey":
-        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config['numtestepisodes']}, Fraction draws: {Counter(wins)[0]/config['numtestepisodes']}, Fraction losses: {Counter(wins)[-1]/config['numtestepisodes']}")
     
 if __name__ == "__main__":
 
@@ -139,7 +141,7 @@ if __name__ == "__main__":
     # Hyperparameters:
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
-    parser.add_argument("--alpha_rnd", type=float, default=0.0001, help="Learning rate for RND target network")
+    parser.add_argument("--alpha_rnd", type=float, default=0.001, help="Learning rate for RND target network")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
     parser.add_argument("--epsilondecay", type=float, default=0.98, help="Decay factor. If 1, no decay")
     parser.add_argument("--minepsilon", type=float, default=0.001, help="Minimum value of epsilon")
@@ -172,6 +174,7 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid --multistep value: {args.multistep}")
     
     config = vars(args)
+    config["epsilon"] = 0.0 # since we are testing
     print(config)
 
     test_agent(config)
