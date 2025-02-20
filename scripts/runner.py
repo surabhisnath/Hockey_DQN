@@ -280,7 +280,7 @@ def run(config):
             pk.dump(save_dict, f)
 
         torch.save(best_agent.Q.state_dict(), 
-            f'../saved/{config['env']}-seed{best_agent_seed}_{savenum}.pth')
+            f'../saved/{config["env"]}-seed{best_agent_seed}_{savenum}.pth')
 
     if config["test"]:
         if config["train"]:
