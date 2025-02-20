@@ -14,7 +14,7 @@ import hockey.hockey_env as h_env
 import argparse
 from collections import Counter
 from agent import DQNAgent
-import pickle
+import pickle as pk
 from matplotlib import animation
 from random import randint
 
@@ -149,7 +149,9 @@ def train_agent(config):
             
                 if done:
                     break
-            episode_wins.append(info["winner"])
+
+            if envname == "hockey":    
+                episode_wins.append(info["winner"])
         
             if config["verbose"]:
                 print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
@@ -278,11 +280,11 @@ def run(config):
         }
         
         ran_num = random_number()
-        with open(config["savepath"] + f"agent_{config["env"]}_{best_agent_seed}_{ran_num}.pk", "wb") as f:
+        with open(config['savepath'] + f"agent_{config['env']}_{best_agent_seed}_{ran_num}.pk", "wb") as f:
             pk.dump(save_dict, f)
 
-        torch.save(agent.Q.state_dict(), 
-            f'./saved/{config["env"]}-seed{best_agent_seed}.pth')
+        torch.save(best_agent.Q.state_dict(),
+                   f'../saved/{config["env"]}-seed{best_agent_seed}_{ran_num}.pth')
 
     if config["test"]:
         if config["train"]:

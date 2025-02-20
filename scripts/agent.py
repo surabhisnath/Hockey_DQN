@@ -3,7 +3,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import *
 from memory import Memory, PrioritizedMemory
-from QFunction import QFunction, QFunction_Dueling
+from Qfunction import QFunction, QFunction_Dueling
 from rnd import RND
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
