@@ -93,7 +93,7 @@ def train_agent(config):
         if envname == "hockey" and config["opponent"] == "self":
             opponent = agent
 
-        print(f"Starting seed {seed+1}")
+        print(f"Starting seed {seed+1}", flush=True)
         np.random.seed(seed)
         torch.manual_seed(seed)
 
@@ -107,7 +107,7 @@ def train_agent(config):
 
         for i in range(config["numepisodes"]):
             if config["verbose"]:
-                print(f"Seed: {seed}. Starting episode {i+1}")
+                print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
             ob, info = env.reset()
             if envname == "hockey":
                 ob2 = env.obs_agent_two()
@@ -137,10 +137,10 @@ def train_agent(config):
                     # find combined reward
                     combined_reward = reward + reward_i
                     total_intrinsic_reward += reward_i
-                    agent.store_transition((ob, a, combined_reward, ob_new, done))
+                    agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
 
                 else:
-                    agent.store_transition((ob, a, reward, ob_new, done))
+                    agent.store_transition((ob, a, reward, ob_new, done, i, t))
             
                 ob = ob_new
                 if envname == "hockey":
@@ -153,7 +153,7 @@ def train_agent(config):
                 episode_wins.append(info["winner"])
         
             if config["verbose"]:
-                print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}")
+                print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}", flush=True)
 
             episode_rewards.append(total_reward)
             if config["rnd"]:
@@ -162,9 +162,9 @@ def train_agent(config):
             losses.append(np.mean(agent.train()))
 
             if (i + 1) % numprints == 0:
-                print(f"Seed: {seed}. {i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-numprints:])}")
+                print(f"Seed: {seed}. {i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-numprints:])}", flush=True)
                 if envname == "hockey":
-                    print(f"Seed: {seed}. {i+1} episodes completed: Fraction wins: {Counter(episode_wins[-numprints:])[1]/numprints}, Fraction draws: {Counter(episode_wins[-numprints:])[0]/numprints}, Fraction losses: {Counter(episode_wins[-numprints:])[-1]/numprints}")
+                    print(f"Seed: {seed}. {i+1} episodes completed: Fraction wins: {Counter(episode_wins[-numprints:])[1]/numprints}, Fraction draws: {Counter(episode_wins[-numprints:])[0]/numprints}, Fraction losses: {Counter(episode_wins[-numprints:])[-1]/numprints}", flush=True)
         
         episode_rewards_seeds.append(episode_rewards)
         episode_wins_seeds.append(episode_wins)
@@ -182,19 +182,19 @@ def train_agent(config):
     assert len(episode_rewards_means) == config["numepisodes"]
     episode_wins_means = np.mean(np.array(episode_wins_seeds), axis=0)
 
-    print("Mean across seeds")
+    print("Mean across seeds", flush=True)
     for i in range(config["numepisodes"]):
         if (i + 1) % numprints == 0:
-            print(f"{i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards_means[i+1-numprints:i+1])}")
+            print(f"{i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards_means[i+1-numprints:i+1])}", flush=True)
             if envname == "hockey":
-                print(f"{i+1} episodes completed: Fraction wins: {Counter(episode_wins_means[i+1-numprints:i+1])[1]/numprints}, Fraction draws: {Counter(episode_wins_means[i+1-numprints:i+1])[0]/numprints}, Fraction losses: {Counter(episode_wins_means[i+1-numprints:i+1])[-1]/numprints}")
+                print(f"{i+1} episodes completed: Fraction wins: {Counter(episode_wins_means[i+1-numprints:i+1])[1]/numprints}, Fraction draws: {Counter(episode_wins_means[i+1-numprints:i+1])[0]/numprints}, Fraction losses: {Counter(episode_wins_means[i+1-numprints:i+1])[-1]/numprints}", flush=True)
     
-    print("Best seed")
+    print("Best seed", flush=True)
     for i in range(config["numepisodes"]):
         if (i + 1) % numprints == 0:
-            print(f"{i+1} episodes completed: Mean cumulative reward: {np.mean(best_agent_episode_rewards[i+1-numprints:i+1])}")
+            print(f"{i+1} episodes completed: Mean cumulative reward: {np.mean(best_agent_episode_rewards[i+1-numprints:i+1])}", flush=True)
             if envname == "hockey":
-                print(f"{i+1} episodes completed: Fraction wins: {Counter(best_agent_episode_wins[i+1-numprints:i+1])[1]/numprints}, Fraction draws: {Counter(best_agent_episode_wins[i+1-numprints:i+1])[0]/numprints}, Fraction losses: {Counter(best_agent_episode_wins[i+1-numprints:i+1])[-1]/numprints}")
+                print(f"{i+1} episodes completed: Fraction wins: {Counter(best_agent_episode_wins[i+1-numprints:i+1])[1]/numprints}, Fraction draws: {Counter(best_agent_episode_wins[i+1-numprints:i+1])[0]/numprints}, Fraction losses: {Counter(best_agent_episode_wins[i+1-numprints:i+1])[-1]/numprints}", flush=True)
     
     if envname == "hockey":
         return best_agent, best_agent_episode_rewards, best_agent_episode_wins, best_agent_cum_mean_episode_rewards, best_agent_losses, best_agent_eval_perf, best_agent_seed, opponent
@@ -241,12 +241,13 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             if done:
                 break
         test_stats.append([i, total_reward, t+1])
-        wins.append(info["winner"])
+        if envname == "hockey":
+            wins.append(info["winner"])
 
     test_stats_np = np.array(test_stats)
-    print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1]))) # to print test rewards
+    print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1])), flush=True) # to print test rewards
     if envname == "hockey":
-        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}", flush=True)
 
     return np.mean(test_stats_np[:,1])
 
@@ -315,8 +316,8 @@ def run(config):
         plt.ylabel("Loss")
         plt.savefig(config["plotpath"] + f"agent_{savenum}_losses.png")
 
-    print(config)
-    print(f"Random number: {savenum}")
+    print(config, flush=True)
+    print(f"Random number: {savenum}", flush=True)
 
 if __name__ == "__main__":
 
@@ -389,6 +390,6 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid --multistep value: {args.multistep}")
 
     config = vars(args)
-    print(config)
+    print(config, flush=True)
 
     run(config)

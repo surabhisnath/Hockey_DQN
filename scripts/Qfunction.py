@@ -25,27 +25,22 @@ class QFunction(Feedforward):
 
     def Q_value(self, observations, actions):
         toret = self.forward(observations).gather(1, actions)
-        print("toret.device", toret.device)
         return toret
 
     def maxQ(self, observations):
         pred = self.predict(observations)
-        print("pred.device", pred.device)
         return np.max(pred, axis=-1, keepdims=True)
 
     def maxQactions(self, observations):
         acts = torch.from_numpy(self.predict(observations)).argmax(dim=1, keepdim=True)
-        print("acts.device", acts.device)
         return acts
 
     def doubleQt(self, observations, actions):
-        toret = torch.from_numpy(self.predict(observations)).gather(1, actions)
-        print("toret.device", toret.device)
+        toret = torch.from_numpy(self.predict(observations)).to(device).gather(1, actions)
         return toret
 
     def greedyAction(self, observations):
         pred = self.predict(observations)
-        print("pred.device", pred.device)
         return np.argmax(pred, axis=-1)
 
 
