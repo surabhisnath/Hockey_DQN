@@ -97,7 +97,7 @@ def train_agent(config):
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
             filename = config["selfplayfilename"]
-            agent.Q.load_state_dict(torch.load("../saved/" + filename))
+            agent.Q.load_state_dict(torch.load(filename))
             agent._update_target_net()
             opponent = None
 
