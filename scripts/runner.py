@@ -109,8 +109,6 @@ def train_agent(config):
         if config["rnd"]:
             episode_intrinsic_rewards = []
 
-<<<<<<< HEAD
-=======
         # train first in defending mode if curriculum learning
         if envname == "hockey" and config["curriculum"]:
             env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_DEFENSE) 
@@ -200,7 +198,6 @@ def train_agent(config):
             env = h_env.HockeyEnv()
             env.discretize_actions(config["numdiscreteactions"])
         eps = config["epsilon"]
->>>>>>> 6970c274156e1c8221067cd4b76cfc0c2705a662
         for i in range(config["numepisodes"]):
             if config["verbose"]:
                 print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
