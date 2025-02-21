@@ -334,7 +334,7 @@ if __name__ == "__main__":
     parser.add_argument("--multistep", type=str, default="None", help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".')      # cannot go with PER
 
     # Hyperparameters:
-    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
     parser.add_argument("--alpha_rnd", type=float, default=0.0001, help="Learning rate for RND target network")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
