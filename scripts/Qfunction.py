@@ -82,7 +82,7 @@ class QFunction_Dueling(Feedforward_Dueling):
 
     def doubleQt(self, observations, actions):
         toret = torch.from_numpy(self.predict(observations)).to(device).gather(1, actions)
-        return toret.cpu().numpy()
+        return toret
 
     def greedyAction(self, observations):
         pred = self.predict(observations)

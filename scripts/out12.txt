@@ -1,0 +1,25 @@
+Device: cpu
+{'env': 'Pendulum-v1', 'numdiscreteactions': 8, 'double': False, 'per': True, 'dueling': False, 'rnd': False, 'multistep': None, 'gamma': 0.99, 'alpha': 0.0005, 'alpha_decay_every': 2000, 'alphadecay': 0.95, 'alpha_rnd': 0.001, 'epsilon': 1.0, 'epsilondecay': 0.99, 'minepsilon': 0.2, 'buffersize': 100000, 'batchsize': 128, 'train': True, 'hiddensize': 100, 'activation': 'tanh', 'numseeds': 2, 'numepisodes': 12000, 'numtestepisodes': 100, 'numsteps': 500, 'fititerations': 1, 'update_Qt_after': 20, 'opponent': 'weak', 'curriculum': False, 'save': True, 'savepath': '../saved/', 'savenum': 12, 'test': True, 'testfilename': None, 'plot': True, 'plotpath': '../plots/', 'verbose': False}
+Config for seed 0:
+1.0
+Starting seed 1
+/Users/surabhisnath/Nextcloud/Documents/PhD/Courses/RL/RL_project/scripts/Qfunction.py:17: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  weights = torch.tensor(weights, device=device, dtype=torch.float32)
+Seed: 0. 600 episodes completed: Mean cumulative reward: -3436.4808394234583
+Seed: 0. 1200 episodes completed: Mean cumulative reward: -3362.8942864380747
+Seed: 0. 1800 episodes completed: Mean cumulative reward: -3331.9286069322106
+Seed: 0. 2400 episodes completed: Mean cumulative reward: -3389.138745029479
+Seed: 0. 3000 episodes completed: Mean cumulative reward: -3383.7927724764595
+Seed: 0. 3600 episodes completed: Mean cumulative reward: -3364.070878139575
+Seed: 0. 4200 episodes completed: Mean cumulative reward: -3345.1300927984094
+Seed: 0. 4800 episodes completed: Mean cumulative reward: -3351.817735880664
+Seed: 0. 5400 episodes completed: Mean cumulative reward: -3383.648130696344
+Seed: 0. 6000 episodes completed: Mean cumulative reward: -3358.5950453220007
+Seed: 0. 6600 episodes completed: Mean cumulative reward: -3333.483835389592
+Seed: 0. 7200 episodes completed: Mean cumulative reward: -3381.5749355273524
+Seed: 0. 7800 episodes completed: Mean cumulative reward: -3404.637159612756
+Seed: 0. 8400 episodes completed: Mean cumulative reward: -3330.2258535765773
+Seed: 0. 9000 episodes completed: Mean cumulative reward: -3328.898371293874
+Seed: 0. 9600 episodes completed: Mean cumulative reward: -3310.9278971018916
+Seed: 0. 10200 episodes completed: Mean cumulative reward: -3364.5244050148813
+Seed: 0. 10800 episodes completed: Mean cumulative reward: -3320.9577528408063

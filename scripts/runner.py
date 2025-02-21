@@ -235,8 +235,6 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         pass
 
     # frames = []
-    # make epsilon 0 for testing
-    config["epsilon"] = 0.0
     test_stats = []
     wins = []
     for i in range(config["numtestepisodes"]):
