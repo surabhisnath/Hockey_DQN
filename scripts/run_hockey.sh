@@ -10,4 +10,4 @@
 #SBATCH --mail-type=ALL     # write a mail if a job begins, ends, fails, gets requeued or stages out options: NONE, BE>
 #SBATCH --mail-user=surabhi.s.nath@gmail.com   # your email
 
-singularity run ../../container.sif python3 runner.py --env hockey --numepisodes 15000 --numseeds 1 --epsilon 1  --minepsilon 0.2 --epsilondecay 0.9998 --savenum 007 --per --double --dueling
+singularity run ../../container.sif python3 runner.py --env hockey --numepisodes 15000 --numseeds 1 --epsilon 1  --minepsilon 0.2 --epsilondecay 0.9998 --savenum 020 --opponent self --selfplayfilename agent_hockey_0_1.pth 

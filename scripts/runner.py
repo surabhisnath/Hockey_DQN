@@ -96,7 +96,7 @@ def train_agent(config):
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
             filename = config["selfplayfilename"]
-            agent.Q.load_state_dict(torch.load("../saved/" + filename))
+            agent.Q.load_state_dict(torch.load(filename))
             agent._update_target_net()
             opponent = None
 
@@ -131,7 +131,8 @@ def train_agent(config):
                     if config["opponent"] == "random":
                         a2 = np.random.uniform(-1,1,4)
                     elif config["opponent"] == "self":
-                        a2 = agent.act(ob2)
+                        a2_dis = agent.act(ob2, eps)
+                        a2 = env.action(a2_dis)
                     else:
                         a2 = opponent.act(ob2)
                     (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -256,7 +257,11 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             a = agent.act(ob, 0)
             if envname == "hockey":
                 a1 = env.action(a)
-                a2 = opponent.act(ob2)
+                if config["opponent"] == "self":
+                    a2_dis = agent.act(ob2, 0.0)
+                    a2 = env.action(a2_dis)
+                else:
+                    a2 = opponent.act(ob2)
                 (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
             else:
                 (ob_new, reward, done, _, _) = env.step(a)
