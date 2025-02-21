@@ -82,9 +82,10 @@ def train_agent(config):
     best_agent_seed = None
 
     for seed in range(config["numseeds"]):
-        seed = seed * 100
-        print(f"Config for seed {seed}:")
-        print(config["epsilon"])
+        seed = seed * 10
+        print(f"Starting seed {seed}", flush=True)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
         
@@ -97,17 +98,13 @@ def train_agent(config):
         if envname == "hockey" and config["opponent"] == "self":
             opponent = agent
 
-        print(f"Starting seed {seed+1}", flush=True)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-
+        
         episode_rewards = []
         episode_wins = []
         cum_mean_episode_rewards = []
         losses = []
         if config["rnd"]:
             episode_intrinsic_rewards = []
-
 
         for i in range(config["numepisodes"]):
             if config["verbose"]:
@@ -116,7 +113,6 @@ def train_agent(config):
             if envname == "hockey":
                 ob2 = env.obs_agent_two()
             total_reward = 0
-            list_rew_i = []
             if config["rnd"]:
                 list_rew_i = []
                 total_intrinsic_reward = 0
