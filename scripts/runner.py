@@ -87,7 +87,7 @@ def train_agent(config):
         print(config["epsilon"])
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
-        
+
         eps = config["epsilon"]
 
         if envname == "hockey" and config["opponent"] == "weak":
@@ -95,7 +95,10 @@ def train_agent(config):
         if envname == "hockey" and config["opponent"] == "strong":
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
-            opponent = agent
+            filename = config["selfplayfilename"]
+            agent.Q.load_state_dict(torch.load("../saved/" + filename))
+            agent._update_target_net()
+            opponent = None
 
         print(f"Starting seed {seed+1}", flush=True)
         np.random.seed(seed)
@@ -127,6 +130,8 @@ def train_agent(config):
                     a1 = env.action(a)
                     if config["opponent"] == "random":
                         a2 = np.random.uniform(-1,1,4)
+                    elif config["opponent"] == "self":
+                        a2 = agent.act(ob2)
                     else:
                         a2 = opponent.act(ob2)
                     (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -190,7 +195,10 @@ def train_agent(config):
         losses_seeds.append(losses)
 
         if envname == "hockey":
-            eval_perf = test_agent(config, agent, opponent)
+            if config["opponent"] == "self":
+                eval_perf = test_agent(config, agent, agent)
+            else:
+                eval_perf = test_agent(config, agent, opponent)
         else:
             eval_perf = test_agent(config, agent)
         if eval_perf > best_agent_eval_perf:
@@ -381,6 +389,7 @@ if __name__ == "__main__":
     # Hockey:
     parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
     parser.add_argument("--curriculum", action="store_true", help="Use curriculum learning (train shoot then defense then combination)? (default: False)")
+    parser.add_argument("--selfplayfilename", type=str, help="Model filename to load for self-play")
 
     # Supp:
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
