@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from torch.nn.utils import clip_grad_norm_
 from feedforward import Feedforward, Feedforward_Dueling
+import torch.optim.lr_scheduler as lr_scheduler
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -9,6 +10,7 @@ class QFunction(Feedforward):
     def __init__(self, observation_dim, action_dim, config):
         super().__init__(input_size=observation_dim, hidden_size=config["hiddensize"], output_size=action_dim, activation=config["activation"])
         self.optimizer = torch.optim.Adam(self.parameters(), lr=config["alpha"], eps=0.000001)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=config["alpha_decay_every"], gamma=config["alphadecay"])
         self.loss = torch.nn.SmoothL1Loss(reduction="none")
 
     def fit(self, Qval, targets, weights):
@@ -21,6 +23,7 @@ class QFunction(Feedforward):
         loss = loss.mean()
         loss.backward()
         self.optimizer.step()
+        self.scheduler.step()
         return loss.item(), td_error
 
     def Q_value(self, observations, actions):
@@ -48,6 +51,7 @@ class QFunction_Dueling(Feedforward_Dueling):
     def __init__(self, observation_dim, action_dim, config):
         super().__init__(input_size=observation_dim, hidden_size=config["hiddensize"], output_size=action_dim, activation=config["activation"])
         self.optimizer = torch.optim.Adam(self.parameters(), lr=config["alpha"], eps=0.000001)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=config["alpha_decay_every"], gamma=config["alphadecay"])
         self.loss = torch.nn.SmoothL1Loss(reduction="none")
 
     def fit(self, Qval, targets, weights):
@@ -61,6 +65,7 @@ class QFunction_Dueling(Feedforward_Dueling):
         loss.backward()
         clip_grad_norm_(self.parameters(), 10.0)        # difference
         self.optimizer.step()
+        self.scheduler.step()
         return loss.item(), td_error
 
     def Q_value(self, observations, actions):
@@ -76,8 +81,8 @@ class QFunction_Dueling(Feedforward_Dueling):
         return acts
 
     def doubleQt(self, observations, actions):
-        toret = torch.from_numpy(self.predict(observations)).gather(1, actions)
-        return toret.numpy()
+        toret = torch.from_numpy(self.predict(observations)).to(device).gather(1, actions)
+        return toret
 
     def greedyAction(self, observations):
         pred = self.predict(observations)

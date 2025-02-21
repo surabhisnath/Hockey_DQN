@@ -83,9 +83,13 @@ def train_agent(config):
 
     for seed in range(config["numseeds"]):
         seed = seed * 100
+        print(f"Config for seed {seed}:")
+        print(config["epsilon"])
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
         
+        eps = config["epsilon"]
+
         if envname == "hockey" and config["opponent"] == "weak":
             opponent = h_env.BasicOpponent(weak=True)
         if envname == "hockey" and config["opponent"] == "strong":
@@ -114,9 +118,10 @@ def train_agent(config):
             total_reward = 0
             list_rew_i = []
             if config["rnd"]:
+                list_rew_i = []
                 total_intrinsic_reward = 0
             for t in range(config["numsteps"]):
-                a = agent.act(ob)
+                a = agent.act(ob, eps)
 
                 if envname == "hockey":
                     a1 = env.action(a)
@@ -173,7 +178,12 @@ def train_agent(config):
                 print(f"Seed: {seed}. {i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-numprints:])}", flush=True)
                 if envname == "hockey":
                     print(f"Seed: {seed}. {i+1} episodes completed: Fraction wins: {Counter(episode_wins[-numprints:])[1]/numprints}, Fraction draws: {Counter(episode_wins[-numprints:])[0]/numprints}, Fraction losses: {Counter(episode_wins[-numprints:])[-1]/numprints}", flush=True)
-        
+           
+            # decay epsilon
+            eps = eps * config["epsilondecay"]
+            if eps < config["minepsilon"]:
+                eps = config["minepsilon"]
+
         episode_rewards_seeds.append(episode_rewards)
         episode_wins_seeds.append(episode_wins)
         cum_mean_episode_rewards_seeds.append(cum_mean_episode_rewards)
@@ -225,8 +235,6 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         pass
 
     # frames = []
-    # make epsilon 0 for testing
-    config["epsilon"] = 0.0
     test_stats = []
     wins = []
     for i in range(config["numtestepisodes"]):
@@ -237,7 +245,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
         for t in range(config["numsteps"]):
             # frames.append(env.render(mode="rgb_array"))     # uncomment to save gif
             done = False
-            a = agent.act(ob)
+            a = agent.act(ob, 0)
             if envname == "hockey":
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
@@ -291,7 +299,7 @@ def run(config):
             pk.dump(save_dict, f)
 
         torch.save(best_agent.Q.state_dict(), 
-            f'../saved/{config["env"]}-seed{best_agent_seed}_{savenum}.pth')
+            f"../saved/agent_{config['env']}_{best_agent_seed}_{savenum}.pth")
 
     if config["test"]:
         if config["train"]:
@@ -345,12 +353,14 @@ if __name__ == "__main__":
     parser.add_argument("--multistep", type=str, default="None", help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".')      # cannot go with PER
 
     # Hyperparameters:
-    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
-    parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
+    parser.add_argument("--alpha", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("--alpha_decay_every", type=int, default=2000, help="Decay learning rate every N episodes")
+    parser.add_argument("--alphadecay", type=float, default=0.95, help="Multiply learning rate by this factor every decay step")
     parser.add_argument("--alpha_rnd", type=float, default=0.001, help="Learning rate for RND target network")
-    parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon for epsilon greedy")
-    parser.add_argument("--epsilondecay", type=float, default=1.0, help="Decay factor. If 1, no decay")
-    parser.add_argument("--minepsilon", type=float, default=0.001, help="Minimum value of epsilon")
+    parser.add_argument("--epsilon", type=float, default=1, help="Epsilon for epsilon greedy")
+    parser.add_argument("--epsilondecay", type=float, default=0.9998, help="Decay factor. If 1, no decay")
+    parser.add_argument("--minepsilon", type=float, default=0.01, help="Minimum value of epsilon")
 
     # Memory:
     parser.add_argument("--buffersize", type=int, default=int(1e5), help="Memory buffer size")
