@@ -4,6 +4,7 @@
 __pycache__
 hockey/.ipynb_checkpoints
 hockey/__pycache__
+*.pyc
 .env*
 saved/
 plots/
