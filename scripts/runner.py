@@ -88,7 +88,7 @@ def train_agent(config):
         torch.manual_seed(seed)
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
-        
+
         eps = config["epsilon"]
 
         if envname == "hockey" and config["opponent"] == "weak":
@@ -96,7 +96,10 @@ def train_agent(config):
         if envname == "hockey" and config["opponent"] == "strong":
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
-            opponent = agent
+            filename = config["selfplayfilename"]
+            agent.Q.load_state_dict(torch.load("../saved/" + filename))
+            agent._update_target_net()
+            opponent = None
 
         
         episode_rewards = []
@@ -106,6 +109,98 @@ def train_agent(config):
         if config["rnd"]:
             episode_intrinsic_rewards = []
 
+<<<<<<< HEAD
+=======
+        # train first in defending mode if curriculum learning
+        if envname == "hockey" and config["curriculum"]:
+            env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_DEFENSE) 
+            env.discretize_actions(config["numdiscreteactions"])
+
+            ###### Curriculum training ########
+            for i in range(config["numcurriculumepisodes"]):
+                if config["verbose"]:
+                    print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
+                ob, info = env.reset()
+                if envname == "hockey":
+                    ob2 = env.obs_agent_two()
+                total_reward = 0
+                list_rew_i = []
+                if config["rnd"]:
+                    list_rew_i = []
+                    total_intrinsic_reward = 0
+                for t in range(config["numsteps"]):
+                    a = agent.act(ob, eps)
+
+                    if envname == "hockey":
+                        a1 = env.action(a)
+                        if config["opponent"] == "random":
+                            a2 = np.random.uniform(-1,1,4)
+                        elif config["opponent"] == "self":
+                            a2_disc = agent.act(ob2, eps)
+                            a2 = env.action(a2_disc)
+                        else:
+                            a2 = opponent.act(ob2)
+                        (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
+                    else:
+                        (ob_new, reward, done, _, _) = env.step(a)
+                
+                    total_reward += reward
+
+                    if config["rnd"]:
+                        # get intrinsic rewards
+                        reward_i = agent.rnd.intrinsic_reward(
+                            torch.from_numpy(ob.astype(np.float32))).detach().item() #.clamp(-1.0, 1.0)
+                        list_rew_i.append(reward_i)
+                        # find combined reward
+                        if t==0:
+                            combined_reward = reward + reward_i
+                            total_intrinsic_reward+= reward_i
+                        elif t>0:
+                            # normalise intrinsic rewards by running std
+                            # random = np.random.rand() * 10 # for control with random intrinsic reward
+                            reward_i_norm = reward_i/np.std(list_rew_i) # normalised intrinsic reward
+                            combined_reward = reward + reward_i_norm
+                            total_intrinsic_reward+= reward_i_norm
+                        agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
+
+                    else:
+                        agent.store_transition((ob, a, reward, ob_new, done, i, t))
+                
+                    ob = ob_new
+                    if envname == "hockey":
+                        ob2 = env.obs_agent_two()
+                
+                    if done:
+                        break
+
+                if envname == "hockey":
+                    episode_wins.append(info["winner"])
+            
+                if config["verbose"]:
+                    print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}", flush=True)
+
+                episode_rewards.append(total_reward)
+                if config["rnd"]:
+                    episode_intrinsic_rewards.append(total_intrinsic_reward)
+                cum_mean_episode_rewards.append(np.mean(episode_rewards[-numprints:]))
+                losses.append(np.mean(agent.train()))
+
+                if (i + 1) % numprints == 0:
+                    print(f"Seed: {seed}. {i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-numprints:])}", flush=True)
+                    if envname == "hockey":
+                        print(f"Seed: {seed}. {i+1} episodes completed: Fraction wins: {Counter(episode_wins[-numprints:])[1]/numprints}, Fraction draws: {Counter(episode_wins[-numprints:])[0]/numprints}, Fraction losses: {Counter(episode_wins[-numprints:])[-1]/numprints}", flush=True)
+
+                # decay epsilon
+                eps = eps * config["epsilondecay"]
+                if eps < config["minepsilon"]:
+                    eps = config["minepsilon"]
+
+        ###### Normal training ######
+        if envname == "hockey":
+            env = h_env.HockeyEnv()
+            env.discretize_actions(config["numdiscreteactions"])
+        eps = config["epsilon"]
+>>>>>>> 6970c274156e1c8221067cd4b76cfc0c2705a662
         for i in range(config["numepisodes"]):
             if config["verbose"]:
                 print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
@@ -123,6 +218,9 @@ def train_agent(config):
                     a1 = env.action(a)
                     if config["opponent"] == "random":
                         a2 = np.random.uniform(-1,1,4)
+                    elif config["opponent"] == "self":
+                        a2_disc = agent.act(ob2, eps)
+                        a2 = env.action(a2_disc)
                     else:
                         a2 = opponent.act(ob2)
                     (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -186,14 +284,20 @@ def train_agent(config):
         losses_seeds.append(losses)
 
         if envname == "hockey":
-            eval_perf = test_agent(config, agent, opponent)
+            if config["opponent"] == "self":
+                eval_perf = test_agent(config, agent, agent)
+            else:
+                eval_perf = test_agent(config, agent, opponent)
         else:
             eval_perf = test_agent(config, agent)
         if eval_perf > best_agent_eval_perf:
             best_agent, best_agent_episode_rewards, best_agent_episode_wins, best_agent_cum_mean_episode_rewards, best_agent_losses, best_agent_eval_perf, best_agent_seed = agent, episode_rewards, episode_wins, cum_mean_episode_rewards, losses, eval_perf, seed
     
     episode_rewards_means = np.mean(np.array(episode_rewards_seeds), axis=0)
-    assert len(episode_rewards_means) == config["numepisodes"]
+    if config["curriculum"]:
+        assert len(episode_rewards_means) == config["numepisodes"] + config["numcurriculumepisodes"]
+    else:
+        assert len(episode_rewards_means) == config["numepisodes"]
     episode_wins_means = np.mean(np.array(episode_wins_seeds), axis=0)
 
     print("Mean across seeds", flush=True)
@@ -244,7 +348,11 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             a = agent.act(ob, 0)
             if envname == "hockey":
                 a1 = env.action(a)
-                a2 = opponent.act(ob2)
+                if config["opponent"] == "self":
+                    a2_dis = agent.act(ob2, 0)
+                    a2 = env.action(a2_dis)
+                else:
+                    a2 = opponent.act(ob2)
                 (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
             else:
                 (ob_new, reward, done, _, _) = env.step(a)
@@ -376,7 +484,9 @@ if __name__ == "__main__":
 
     # Hockey:
     parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
-    parser.add_argument("--curriculum", action="store_true", help="Use curriculum learning (train shoot then defense then combination)? (default: False)")
+    parser.add_argument("--curriculum", action="store_true", help="Use curriculum learning (train defense then combination)? (default: False)")
+    parser.add_argument("--selfplayfilename", type=str, help="Model filename to load for self-play")
+    parser.add_argument("--numcurriculumepisodes", type=int, default=500, help="Number of train episodes in shoot/ defend mode")
 
     # Supp:
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
