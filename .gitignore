@@ -8,3 +8,5 @@ hockey/__pycache__
 saved/
 plots/
 gifs/
+*.err
+*.out
