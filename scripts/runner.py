@@ -489,7 +489,7 @@ if __name__ == "__main__":
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
     parser.add_argument("--nosave", action="store_false", dest="save", help="Don't save model")
     parser.add_argument("--savepath", default="../saved/", help="Path to save model, unless --nosave")
-    parser.add_argument("--savenum", type=int, default=None, help="Number to append to the saved model")
+    parser.add_argument("--savenum", default=None, help="Number to append to the saved model")
 
     parser.add_argument("--test", action="store_true", default=True, help="Evaluates trained model (default: True)")
     parser.add_argument("--testfilename", help="Evaluates trained model (default: True)")
