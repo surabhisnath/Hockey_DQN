@@ -67,8 +67,8 @@ def train_agent(config):
     losses_seeds = []
     if config["rnd"]:
         episode_intrinsic_rewards = []
-    if config["numepisodes"] >= 20:
-        numprints = config["numepisodes"] // 20
+    if config["numepisodes"] >= config["numprints"]:
+        numprints = config["numepisodes"] // config["numprints"]
     else:
         numprints = 1
     
@@ -116,7 +116,6 @@ def train_agent(config):
             if envname == "hockey":
                 ob2 = env.obs_agent_two()
             total_reward = 0
-            list_rew_i = []
             if config["rnd"]:
                 list_rew_i = []
                 total_intrinsic_reward = 0
@@ -377,6 +376,7 @@ if __name__ == "__main__":
     parser.add_argument("--numepisodes", type=int, default=600, help="Number of train episodes")
     parser.add_argument("--numtestepisodes", type=int, default=100, help="Number of test episodes")
     parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
+    parser.add_argument("--numprints", type=int, default=20, help="Number of print statements during training")
     parser.add_argument("--fititerations", type=int, default=32, help="Number of fit iterations per episode")
     parser.add_argument("--update_Qt_after", type=int, default=20, help="Update target network after every")
 
