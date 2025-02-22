@@ -818,25 +818,77 @@ class HockeyEnv(gym.Env, EzPickle):
             )
 
     def discrete_to_continous_action(self, discrete_action):
-        """converts discrete actions into continuous ones (for one player)
-        The actions allow only one operation each timestep, e.g. X or Y or angle change.
-        This is surely limiting. Other discrete actions are possible
-        Action 0: do nothing
-        Action 1: -1 in x
-        Action 2: 1 in x
-        Action 3: -1 in y
-        Action 4: 1 in y
-        Action 5: -1 in angle
-        Action 6: 1 in angle
-        Action 7: shoot (if keep_mode is on)
+        # """converts discrete actions into continuous ones (for one player)
+        # The actions allow only one operation each timestep, e.g. X or Y or angle change.
+        # This is surely limiting. Other discrete actions are possible
+        # Action 0: do nothing
+        # Action 1: -1 in x
+        # Action 2: 1 in x
+        # Action 3: -1 in y
+        # Action 4: 1 in y
+        # Action 5: -1 in angle
+        # Action 6: 1 in angle
+        # Action 7: shoot (if keep_mode is on)
+        # """
+        # action_cont = [
+        #     (discrete_action == 1) * -1.0 + (discrete_action == 2) * 1.0,  # player x
+        #     (discrete_action == 3) * -1.0 + (discrete_action == 4) * 1.0,  # player y
+        #     (discrete_action == 5) * -1.0 + (discrete_action == 6) * 1.0,
+        # ]  # player angle
+        # if self.keep_mode:
+        #     action_cont.append((discrete_action == 7) * 1.0)
+
+        # return action_cont
+
         """
+        - Action 0: stand
+        - Action 1: left (-x)
+        - Action 2: right (+x)
+        - Action 3: down (-y)
+        - Action 4: up (+y)
+        - Action 5: clockwise (-angle)
+        - Action 6: counter-clockwise (+angle)
+        - Action 7: left down (-x, -y)
+        - Action 8: left up (-x, +y)
+        - Action 9: right down (+x, -y)
+        - Action 10: right up (+x, +y)
+        - Action 11: left down clockwise (-x, -y, -angle)
+        - Action 12: left down counter-clockwise (-x, -y, +angle)
+        - Action 13: left up clockwise (-x, +y, -angle)
+        - Action 14: left up counter-clockwise (-x, +y, +angle)
+        - Action 15: right down clockwise (+x, -y, -angle)
+        - Action 16: right down counter-clockwise (+x, -y, +angle)
+        - Action 17: right up clockwise (+x, +y, -angle)
+        - Action 18: right up counter-clockwise (+x, +y, +angle)
+        - Action 19: shoot (if keep_mode is on)
+        """
+
         action_cont = [
-            (discrete_action == 1) * -1.0 + (discrete_action == 2) * 1.0,  # player x
-            (discrete_action == 3) * -1.0 + (discrete_action == 4) * 1.0,  # player y
-            (discrete_action == 5) * -1.0 + (discrete_action == 6) * 1.0,
-        ]  # player angle
+            (discrete_action == 1) * -1.0 + (discrete_action == 2) * 1.0 + 
+            (discrete_action == 7) * -1.0 + (discrete_action == 8) * -1.0 +
+            (discrete_action == 9) * 1.0 + (discrete_action == 10) * 1.0 +
+            (discrete_action == 11) * -1.0 + (discrete_action == 12) * -1.0 +
+            (discrete_action == 13) * -1.0 + (discrete_action == 14) * -1.0 +
+            (discrete_action == 15) * 1.0 + (discrete_action == 16) * 1.0 +
+            (discrete_action == 17) * 1.0 + (discrete_action == 18) * 1.0,  # player x
+            
+            (discrete_action == 3) * -1.0 + (discrete_action == 4) * 1.0 +
+            (discrete_action == 7) * -1.0 + (discrete_action == 8) * 1.0 +
+            (discrete_action == 9) * -1.0 + (discrete_action == 10) * 1.0 +
+            (discrete_action == 11) * -1.0 + (discrete_action == 12) * -1.0 +
+            (discrete_action == 13) * 1.0 + (discrete_action == 14) * 1.0 +
+            (discrete_action == 15) * -1.0 + (discrete_action == 16) * -1.0 +
+            (discrete_action == 17) * 1.0 + (discrete_action == 18) * 1.0,  # player y
+            
+            (discrete_action == 5) * -1.0 + (discrete_action == 6) * 1.0 +
+            (discrete_action == 11) * -1.0 + (discrete_action == 12) * 1.0 +
+            (discrete_action == 13) * -1.0 + (discrete_action == 14) * 1.0 +
+            (discrete_action == 15) * -1.0 + (discrete_action == 16) * 1.0 +
+            (discrete_action == 17) * -1.0 + (discrete_action == 18) * 1.0,  # player angle
+        ]
+        
         if self.keep_mode:
-            action_cont.append((discrete_action == 7) * 1.0)
+            action_cont.append((discrete_action == 19) * 1.0)
 
         return action_cont
 
