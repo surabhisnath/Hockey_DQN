@@ -199,6 +199,19 @@ def train_agent(config):
             env.discretize_actions(config["numdiscreteactions"])
         eps = config["epsilon"]
         for i in range(config["numepisodes"]):
+            
+            # if i == 20000 and envname == "hockey":
+            #     config["epsilon"] = 1
+            #     config["epsilondecay"] = 0.9995     # will decay in 5k
+            #     eps = config["epsilon"]
+            #     config["opponent"] = "strong"
+            #     opponent = h_env.BasicOpponent(weak=False)
+            # if i == 35000 and envname == "hockey":
+            #     config["epsilon"] = 1
+            #     config["epsilondecay"] = 0.999     # will decay in 2.5k
+            #     config["opponent"] = "self"
+            #     opponent = agent
+
             if config["verbose"]:
                 print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
             ob, info = env.reset()

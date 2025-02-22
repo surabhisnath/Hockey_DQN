@@ -59,14 +59,6 @@ def test_agent(config):
         os.makedirs('../gifs', exist_ok=True)
         print("to get a gif for episode 1 run \"convert -delay 1x30 ../gifs/01_* ep01.gif\"")
 
-    # opponent for hockey
-    if envname == "hockey" and config["opponent"] == "weak":
-        opponent = h_env.BasicOpponent(weak=True)
-    if envname == "hockey" and config["opponent"] == "strong":
-        opponent = h_env.BasicOpponent(weak=False)
-    if envname == "hockey" and config["opponent"] == "self":
-        opponent = agent
-
     # create environment
     if envname == "hockey":
         env = h_env.HockeyEnv()
@@ -80,6 +72,15 @@ def test_agent(config):
     # create and load agent
     agent = DQNAgent(env.observation_space, env.action_space, config)
     agent.Q.load_state_dict(torch.load("../saved/" + filename))
+
+    print("OPPONENT", config["opponent"])
+    # opponent for hockey
+    if envname == "hockey" and config["opponent"] == "weak":
+        opponent = h_env.BasicOpponent(weak=True)
+    if envname == "hockey" and config["opponent"] == "strong":
+        opponent = h_env.BasicOpponent(weak=False)
+    if envname == "hockey" and config["opponent"] == "self":
+        opponent = agent
 
     # test agent
     test_stats = []
@@ -128,21 +129,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="RL_project", description="Implements DQN and variation algorithms on various environments")
 
     # Test:
-    parser.add_argument("--numtestepisodes", type=int, default=50, help="Number of test episodes")
+    parser.add_argument("--numtestepisodes", type=int, default=1000, help="Number of test episodes")
     parser.add_argument("--numteststeps", type=int, default=500, help="Number of steps per episode")
     parser.add_argument("--render", action="store_true", help="Render the environment?")
     parser.add_argument("--filename", type=str, help="Model filename to load")
     parser.add_argument("--savegif", action="store_true", help="render animated gif of agent playing")
 
-    # Hockey:
-    parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
-
     args = parser.parse_args()
     config = vars(args)
 
-    saved = pk.load(open(f"../saved/config['filename'][:-2] + 'k'", 'rb'))
+    saved = pk.load(open(f"../saved/{config['filename'][:-2]}k", 'rb'))
     config_train = saved["config"]
     config = {**config, **config_train}
+    config["opponent"] = "strong"
+    config["alpha_decay_every"] = 10
+    config["alphadecay"] = 1
+    config["numtestepisodes"] = 1000
     print(config)
 
     test_agent(config)
