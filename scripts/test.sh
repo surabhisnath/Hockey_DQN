@@ -10,4 +10,4 @@
 #SBATCH --mail-type=ALL     # write a mail if a job begins, ends, fails, gets requeued or stages out options: NONE, BEGIN, END, FAIL, REQUEUE, ALL
 #SBATCH --mail-user=surabhi.s.nath@gmail.com   # your email
 
-singularity run ../../container.sif python3 test.py --env hockey --filename hockey-seed0_2.pth --savegif
+singularity run ../../container.sif python3 test.py --filename agent_hockey_0_20.pth --numtestepisodes 100 --opponent weak

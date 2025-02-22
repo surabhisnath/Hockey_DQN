@@ -59,14 +59,6 @@ def test_agent(config):
         os.makedirs('../gifs', exist_ok=True)
         print("to get a gif for episode 1 run \"convert -delay 1x30 ../gifs/01_* ep01.gif\"")
 
-    # opponent for hockey
-    if envname == "hockey" and config["opponent"] == "weak":
-        opponent = h_env.BasicOpponent(weak=True)
-    if envname == "hockey" and config["opponent"] == "strong":
-        opponent = h_env.BasicOpponent(weak=False)
-    if envname == "hockey" and config["opponent"] == "self":
-        opponent = agent
-
     # create environment
     if envname == "hockey":
         env = h_env.HockeyEnv()
@@ -80,6 +72,14 @@ def test_agent(config):
     # create and load agent
     agent = DQNAgent(env.observation_space, env.action_space, config)
     agent.Q.load_state_dict(torch.load("../saved/" + filename))
+   
+    # opponent for hockey
+    if envname == "hockey" and config["opponent"] == "weak":
+        opponent = h_env.BasicOpponent(weak=True)
+    if envname == "hockey" and config["opponent"] == "strong":
+        opponent = h_env.BasicOpponent(weak=False)
+    if envname == "hockey" and config["opponent"] == "self":
+        opponent = agent
 
     # test agent
     test_stats = []
@@ -95,6 +95,7 @@ def test_agent(config):
             done = False
             a = agent.act(ob, 0)
             if envname == "hockey":
+                print(opponent)
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
                 (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -139,9 +140,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     config = vars(args)
-
-    saved = pk.load(open(f"../saved/config['filename'][:-2] + 'k'", 'rb'))
+    
+    saved = pk.load(open(f"../saved/{config['filename'][:-2]}k", 'rb'))
     config_train = saved["config"]
+    config_train['opponent'] = config['opponent']
     config = {**config, **config_train}
     print(config)
 
