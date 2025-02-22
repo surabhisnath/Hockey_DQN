@@ -82,9 +82,10 @@ def train_agent(config):
     best_agent_seed = None
 
     for seed in range(config["numseeds"]):
-        seed = seed * 100
-        print(f"Config for seed {seed}:")
-        print(config["epsilon"])
+        seed = seed * 10
+        print(f"Starting seed {seed}", flush=True)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
 
         agent = DQNAgent(env.observation_space, env.action_space, config)
 
@@ -96,14 +97,11 @@ def train_agent(config):
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
             filename = config["selfplayfilename"]
-            agent.Q.load_state_dict(torch.load("../saved/" + filename))
+            agent.Q.load_state_dict(torch.load(filename))
             agent._update_target_net()
             opponent = None
 
-        print(f"Starting seed {seed+1}", flush=True)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-
+        
         episode_rewards = []
         episode_wins = []
         cum_mean_episode_rewards = []
@@ -492,7 +490,7 @@ if __name__ == "__main__":
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
     parser.add_argument("--nosave", action="store_false", dest="save", help="Don't save model")
     parser.add_argument("--savepath", default="../saved/", help="Path to save model, unless --nosave")
-    parser.add_argument("--savenum", type=int, default=None, help="Number to append to the saved model")
+    parser.add_argument("--savenum", default=None, help="Number to append to the saved model")
 
     parser.add_argument("--test", action="store_true", default=True, help="Evaluates trained model (default: True)")
     parser.add_argument("--testfilename", help="Evaluates trained model (default: True)")

@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 import numpy as np
 import glob
 import torch
 import matplotlib.pyplot as plt
 import pickle as pk
+=======
+from math import e
+import matplotlib.pyplot as plt
+import numpy as np
+import glob
+import torch
+>>>>>>> 9a9494bb7e7eb824e142a6f3f5e5f31cae3624c8
 
 def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
@@ -32,7 +40,11 @@ for i, val in num_to_algo.items():
 
     try:
         # ✅ Strongest possible fix: Ensure all tensors move to CPU
+<<<<<<< HEAD
         data = pk.load(open(filename, 'rb'))
+=======
+        data = torch.load(filename, map_location=torch.device('cpu'))
+>>>>>>> 9a9494bb7e7eb824e142a6f3f5e5f31cae3624c8
         for key, value in data.items():
             if isinstance(value, torch.Tensor):
                 data[key] = value.cpu()  # Ensure every tensor is explicitly on CPU
@@ -53,4 +65,8 @@ plt.ylabel("Episode reward")
 plt.legend()
 plt.title(f"{env}")
 plt.tight_layout()
+<<<<<<< HEAD
 plt.savefig(f"../plots/{env}.png")
+=======
+plt.savefig(f"../plots/{env}.png")
+>>>>>>> 9a9494bb7e7eb824e142a6f3f5e5f31cae3624c8
