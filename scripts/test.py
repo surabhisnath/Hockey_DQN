@@ -11,7 +11,7 @@ from matplotlib import cm
 import argparse
 from collections import Counter
 from agent import DQNAgent
-import pickle
+import pickle as pk
 from matplotlib import animation
 from PIL import Image
 import sys
@@ -72,7 +72,7 @@ def test_agent(config):
     # create and load agent
     agent = DQNAgent(env.observation_space, env.action_space, config)
     agent.Q.load_state_dict(torch.load("../saved/" + filename))
-   
+     
     # opponent for hockey
     if envname == "hockey" and config["opponent"] == "weak":
         opponent = h_env.BasicOpponent(weak=True)
