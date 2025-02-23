@@ -11,7 +11,7 @@ from matplotlib import cm
 import argparse
 from collections import Counter
 from agent import DQNAgent
-import pickle as pk
+import pickle
 from matplotlib import animation
 from PIL import Image
 import sys
@@ -59,14 +59,6 @@ def test_agent(config):
         os.makedirs('../gifs', exist_ok=True)
         print("to get a gif for episode 1 run \"convert -delay 1x30 ../gifs/01_* ep01.gif\"")
 
-    # opponent for hockey
-    if envname == "hockey" and config["opponent"] == "weak":
-        opponent = h_env.BasicOpponent(weak=True)
-    if envname == "hockey" and config["opponent"] == "strong":
-        opponent = h_env.BasicOpponent(weak=False)
-    if envname == "hockey" and config["opponent"] == "self":
-        opponent = agent
-
     # create environment
     if envname == "hockey":
         env = h_env.HockeyEnv()
@@ -80,6 +72,14 @@ def test_agent(config):
     # create and load agent
     agent = DQNAgent(env.observation_space, env.action_space, config)
     agent.Q.load_state_dict(torch.load("../saved/" + filename))
+
+    # opponent for hockey
+    if envname == "hockey" and config["opponent"] == "weak":
+        opponent = h_env.BasicOpponent(weak=True)
+    if envname == "hockey" and config["opponent"] == "strong":
+        opponent = h_env.BasicOpponent(weak=False)
+    if envname == "hockey" and config["opponent"] == "self":
+        opponent = agent
 
     # test agent
     test_stats = []
@@ -117,7 +117,7 @@ def test_agent(config):
     test_stats_np = np.array(test_stats)
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1])))
     if envname == "hockey":
-        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config['numtestepisodes']}, Fraction draws: {Counter(wins)[0]/config['numtestepisodes']}, Fraction losses: {Counter(wins)[-1]/config['numtestepisodes']}")
 
     if save_gif:
         frames[0].save("../gifs/" + filename[:-3] + "gif", save_all=True, append_images=frames[1:], duration=10, loop=0, optimize=True)
