@@ -104,7 +104,6 @@ def test_agent(config):
             done = False
             a = agent.act(ob, 0)
             if envname == "hockey":
-                print(opponent)
                 a1 = env.action(a)
                 a2 = opponent.act(ob2)
                 (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -143,6 +142,11 @@ if __name__ == "__main__":
     parser.add_argument("--render", action="store_true", help="Render the environment?")
     parser.add_argument("--filename", type=str, help="Model filename to load")
     parser.add_argument("--savegif", action="store_true", help="render animated gif of agent playing")
+    
+    # Hockey:
+    parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
+
+
 
     args = parser.parse_args()
     config = vars(args)
@@ -150,7 +154,6 @@ if __name__ == "__main__":
     config_train = saved["config"]
     config_train['opponent'] = config['opponent']
     config = {**config, **config_train}
-    config["opponent"] = "strong"
     config["alpha_decay_every"] = 10
     config["alphadecay"] = 1
     config["numtestepisodes"] = 1000

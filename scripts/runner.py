@@ -246,14 +246,14 @@ def train_agent(config):
                     list_rew_i.append(reward_i)
                     # find combined reward
                     if t==0:
-                        combined_reward = reward + reward_i
-                        total_intrinsic_reward+= reward_i
+                        combined_reward = reward + 0.01 * reward_i
+                        total_intrinsic_reward+= 0.01 * reward_i
                     elif t>0:
                         # normalise intrinsic rewards by running std
                         # random = np.random.rand() * 10 # for control with random intrinsic reward
                         reward_i_norm = reward_i/np.std(list_rew_i) # normalised intrinsic reward
-                        combined_reward = reward + reward_i_norm
-                        total_intrinsic_reward+= reward_i_norm
+                        combined_reward = reward + 0.01 * reward_i_norm
+                        total_intrinsic_reward+= 0.01 * reward_i_norm
                     agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
 
                 else:

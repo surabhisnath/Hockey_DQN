@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hockey_curriculum  # give it any name you want
+#SBATCH --job-name=rnd_self  # give it any name you want
 #SBATCH --cpus-per-task=4   # max 24 per node
 #SBATCH --partition=day     # choose out of day, week, month depending on job duration
 #SBATCH --mem-per-cpu=3G    # max 251GB per node
@@ -10,4 +10,4 @@
 #SBATCH --mail-type=ALL     # write a mail if a job begins, ends, fails, gets requeued or stages out options: NONE, BEGIN, END, FAIL, REQUEUE, ALL
 #SBATCH --mail-user=csahiti07@gmail.com   # your email
 
-singularity run ../../container.sif python3 runner.py --env hockey --fititerations 1 --numepisodes 15000 --numseeds 1 --epsilon 1 --minepsilon 0.2 --epsilondecay 0.9998 --savenum 011 --curriculum
+singularity run ../../container.sif python3 runner.py --env hockey --numepisodes 10000 --numseeds 1 --epsilon 1  --minepsilon 0.01 --epsilondecay 0.99 --savenum 154 --rnd --alpha_rnd 0.001 --gamma 0.98 --alphadecay 1.0 --alpha 0.0002 --opponent self --selfplayfilename ../saved/agent_hockey_0_144.pth 
