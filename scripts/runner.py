@@ -67,8 +67,8 @@ def train_agent(config):
     losses_seeds = []
     if config["rnd"]:
         episode_intrinsic_rewards = []
-    if config["numepisodes"] >= 20:
-        numprints = config["numepisodes"] // 20
+    if config["numepisodes"] >= config["numprints"]:
+        numprints = config["numepisodes"] // config["numprints"]
     else:
         numprints = 1
     
@@ -97,7 +97,7 @@ def train_agent(config):
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
             filename = config["selfplayfilename"]
-            agent.Q.load_state_dict(torch.load("../saved/" + filename))
+            agent.Q.load_state_dict(torch.load(filename))
             agent._update_target_net()
             opponent = None
 
@@ -199,6 +199,19 @@ def train_agent(config):
             env.discretize_actions(config["numdiscreteactions"])
         eps = config["epsilon"]
         for i in range(config["numepisodes"]):
+            
+            # if i == 20000 and envname == "hockey":
+            #     config["epsilon"] = 1
+            #     config["epsilondecay"] = 0.9995     # will decay in 5k
+            #     eps = config["epsilon"]
+            #     config["opponent"] = "strong"
+            #     opponent = h_env.BasicOpponent(weak=False)
+            # if i == 35000 and envname == "hockey":
+            #     config["epsilon"] = 1
+            #     config["epsilondecay"] = 0.999     # will decay in 2.5k
+            #     config["opponent"] = "self"
+            #     opponent = agent
+
             if config["verbose"]:
                 print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
             ob, info = env.reset()
@@ -233,14 +246,14 @@ def train_agent(config):
                     list_rew_i.append(reward_i)
                     # find combined reward
                     if t==0:
-                        combined_reward = reward + reward_i
-                        total_intrinsic_reward+= reward_i
+                        combined_reward = reward + 0.01 * reward_i
+                        total_intrinsic_reward+= 0.01 * reward_i
                     elif t>0:
                         # normalise intrinsic rewards by running std
                         # random = np.random.rand() * 10 # for control with random intrinsic reward
                         reward_i_norm = reward_i/np.std(list_rew_i) # normalised intrinsic reward
-                        combined_reward = reward + reward_i_norm
-                        total_intrinsic_reward+= reward_i_norm
+                        combined_reward = reward + 0.01 * reward_i_norm
+                        total_intrinsic_reward+= 0.01 * reward_i_norm
                     agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
 
                 else:
@@ -476,6 +489,7 @@ if __name__ == "__main__":
     parser.add_argument("--numepisodes", type=int, default=600, help="Number of train episodes")
     parser.add_argument("--numtestepisodes", type=int, default=100, help="Number of test episodes")
     parser.add_argument("--numsteps", type=int, default=500, help="Number of steps per episode")
+    parser.add_argument("--numprints", type=int, default=20, help="Number of print statements during training")
     parser.add_argument("--fititerations", type=int, default=32, help="Number of fit iterations per episode")
     parser.add_argument("--update_Qt_after", type=int, default=20, help="Update target network after every")
 
@@ -489,7 +503,7 @@ if __name__ == "__main__":
     parser.add_argument("--save", action="store_true", default=True, help="Saves model (default: True)")
     parser.add_argument("--nosave", action="store_false", dest="save", help="Don't save model")
     parser.add_argument("--savepath", default="../saved/", help="Path to save model, unless --nosave")
-    parser.add_argument("--savenum", type=int, default=None, help="Number to append to the saved model")
+    parser.add_argument("--savenum", default=None, help="Number to append to the saved model")
 
     parser.add_argument("--test", action="store_true", default=True, help="Evaluates trained model (default: True)")
     parser.add_argument("--testfilename", help="Evaluates trained model (default: True)")
