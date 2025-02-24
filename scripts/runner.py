@@ -193,6 +193,90 @@ def train_agent(config):
                 if eps < config["minepsilon"]:
                     eps = config["minepsilon"]
 
+        # train first in defending mode if curriculum learning
+        if envname == "hockey" and config["curriculum"]:
+            env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_SHOOTING)
+            env.discretize_actions(config["numdiscreteactions"])
+
+            ###### Curriculum training ########
+            for i in range(config["numcurriculumepisodes"]):
+                if config["verbose"]:
+                    print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
+                ob, info = env.reset()
+                if envname == "hockey":
+                    ob2 = env.obs_agent_two()
+                total_reward = 0
+                list_rew_i = []
+                if config["rnd"]:
+                    list_rew_i = []
+                    total_intrinsic_reward = 0
+                for t in range(config["numsteps"]):
+                    a = agent.act(ob, eps)
+
+                    if envname == "hockey":
+                        a1 = env.action(a)
+                        if config["opponent"] == "random":
+                            a2 = np.random.uniform(-1,1,4)
+                        elif config["opponent"] == "self":
+                            a2_disc = agent.act(ob2, eps)
+                            a2 = env.action(a2_disc)
+                        else:
+                            a2 = opponent.act(ob2)
+                        (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
+                    else:
+                        (ob_new, reward, done, _, _) = env.step(a)
+
+                    total_reward += reward
+
+                     if config["rnd"]:
+                        # get intrinsic rewards
+                        reward_i = agent.rnd.intrinsic_reward(
+                            torch.from_numpy(ob.astype(np.float32))).detach().item() #.clamp(-1.0, 1.0)
+                        list_rew_i.append(reward_i)
+                        # find combined reward
+                        if t==0:
+                            combined_reward = reward + reward_i
+                            total_intrinsic_reward+= reward_i
+                        elif t>0:
+                            # normalise intrinsic rewards by running std
+                            # random = np.random.rand() * 10 # for control with random intrinsic reward
+                            reward_i_norm = reward_i/np.std(list_rew_i) # normalised intrinsic reward
+                            combined_reward = reward + reward_i_norm
+                            total_intrinsic_reward+= reward_i_norm
+                        agent.store_transition((ob, a, combined_reward, ob_new, done, i, t))
+
+                    else:
+                        agent.store_transition((ob, a, reward, ob_new, done, i, t))
+
+                    ob = ob_new
+                    if envname == "hockey":
+                        ob2 = env.obs_agent_two()
+
+                    if done:
+                        break
+
+                if envname == "hockey":
+                    episode_wins.append(info["winner"])
+
+                if config["verbose"]:
+                    print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}", flush=True)
+
+                episode_rewards.append(total_reward)
+                if config["rnd"]:
+                    episode_intrinsic_rewards.append(total_intrinsic_reward)
+                cum_mean_episode_rewards.append(np.mean(episode_rewards[-numprints:]))
+                losses.append(np.mean(agent.train()))
+
+                if (i + 1) % numprints == 0:
+                    print(f"Seed: {seed}. {i+1} episodes completed: Mean cumulative reward: {np.mean(episode_rewards[-numprints:])}", flush=True)
+                    if envname == "hockey":
+                        print(f"Seed: {seed}. {i+1} episodes completed: Fraction wins: {Counter(episode_wins[-numprints:])[1]/numprints}, Fraction draws: {Counter(episode_wins[-numprints:])[0]/numprints}, Fraction losses: {Counter(episode_wins[-numprints:])[-1]/numprints}", flush=True)
+
+                # decay epsilon
+                eps = eps * config["epsilondecay"]
+                if eps < config["minepsilon"]:
+                    eps = config["minepsilon"]
+
         ###### Normal training ######
         if envname == "hockey":
             env = h_env.HockeyEnv()
@@ -209,7 +293,7 @@ def train_agent(config):
             # if i == 35000 and envname == "hockey":
             #     config["epsilon"] = 1
             #     config["epsilondecay"] = 0.999     # will decay in 2.5k
-            #     config["opponent"] = "self"
+            #     config["opponent"] = "iself"
             #     opponent = agent
 
             if config["verbose"]:
