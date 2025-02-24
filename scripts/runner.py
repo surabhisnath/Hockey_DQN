@@ -193,9 +193,9 @@ def train_agent(config):
                 if eps < config["minepsilon"]:
                     eps = config["minepsilon"]
 
-        # train first in defending mode if curriculum learning
+        # train next in shooting mode if curriculum learning
         if envname == "hockey" and config["curriculum"]:
-            env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_SHOOTING)
+            env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_SHOOTING) 
             env.discretize_actions(config["numdiscreteactions"])
 
             ###### Curriculum training ########
@@ -225,10 +225,10 @@ def train_agent(config):
                         (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
                     else:
                         (ob_new, reward, done, _, _) = env.step(a)
-
+                
                     total_reward += reward
 
-                     if config["rnd"]:
+                    if config["rnd"]:
                         # get intrinsic rewards
                         reward_i = agent.rnd.intrinsic_reward(
                             torch.from_numpy(ob.astype(np.float32))).detach().item() #.clamp(-1.0, 1.0)
@@ -247,17 +247,17 @@ def train_agent(config):
 
                     else:
                         agent.store_transition((ob, a, reward, ob_new, done, i, t))
-
+                
                     ob = ob_new
                     if envname == "hockey":
                         ob2 = env.obs_agent_two()
-
+                
                     if done:
                         break
 
                 if envname == "hockey":
                     episode_wins.append(info["winner"])
-
+            
                 if config["verbose"]:
                     print(f"Seed: {seed}. Episode {i+1} ended after {t+1} steps. Episode reward = {total_reward}", flush=True)
 
