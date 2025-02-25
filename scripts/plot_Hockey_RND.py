@@ -10,7 +10,7 @@ def running_mean(x, N):
 
 env = "hockey"
 
-num_to_mod = {
+num_to_algo = {
     "145": "DQN",
     "144": "DQN+RND",
     "164": "DQN + RND: curr. (shooting)",
