@@ -12,9 +12,10 @@ env = "hockey"
 
 num_to_mod = {
     "145": "DQN",
-    "144": "DQN+RND",
+    "144": "DQN + RND",
     "164": "DQN + RND: curr. (shooting)",
     "174": "DQN + RND: curr. (defense)",
+    "184": "DQN + RND: curr. (both)",
 }
 
 plt.figure(figsize=(5, 4))

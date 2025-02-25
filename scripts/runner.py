@@ -389,7 +389,7 @@ def train_agent(config):
     
     episode_rewards_means = np.mean(np.array(episode_rewards_seeds), axis=0)
     if config["curriculum"]:
-        assert len(episode_rewards_means) == config["numepisodes"] + config["numcurriculumepisodes"]
+        assert len(episode_rewards_means) == config["numepisodes"] + config["numcurriculumepisodes"] + config["numcurriculumepisodes"]
     else:
         assert len(episode_rewards_means) == config["numepisodes"]
     episode_wins_means = np.mean(np.array(episode_wins_seeds), axis=0)
