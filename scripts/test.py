@@ -16,7 +16,6 @@ from matplotlib import animation
 from PIL import Image
 import sys
 import os
-# import imageio.v2 as imageio
 sys.path.append(os.path.abspath("../"))
 import hockey.hockey_env as h_env
 
@@ -154,17 +153,14 @@ if __name__ == "__main__":
     # Hockey:
     parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
 
-
-
     args = parser.parse_args()
     config = vars(args)
     saved = pk.load(open(f"../saved/{config['filename'][:-2]}k", 'rb'))
     config_train = saved["config"]
     config_train['opponent'] = config['opponent']
     config = {**config, **config_train}
-    config["opponent"] = "weak"
-    config["alpha_decay_every"] = 10
-    config["alphadecay"] = 1
+    config["opponent"] = "weak"     # always test against weak agent (no matter what the agent was trained on)
+    config["alphadecay"] = 1        # do not decay alpha
     config["numtestepisodes"] = 1000
     print(config)
 

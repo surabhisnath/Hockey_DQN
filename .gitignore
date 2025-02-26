@@ -7,8 +7,6 @@ hockey/__pycache__
 *.pyc
 .env*
 saved/
-plots/
-gifs/
 *.err
 *.out
 *.sh
