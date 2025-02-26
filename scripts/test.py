@@ -72,8 +72,24 @@ def test_agent(config):
     # create and load agent
     agent = DQNAgent(env.observation_space, env.action_space, config)
     agent.Q.load_state_dict(torch.load("../saved/" + filename))
+     
+    # opponent for hockey
+    if envname == "hockey" and config["opponent"] == "weak":
+        opponent = h_env.BasicOpponent(weak=True)
+    if envname == "hockey" and config["opponent"] == "strong":
+        opponent = h_env.BasicOpponent(weak=False)
+    if envname == "hockey" and config["opponent"] == "self":
+        opponent = agent
 
     print("OPPONENT", config["opponent"])
+    # opponent for hockey
+    if envname == "hockey" and config["opponent"] == "weak":
+        opponent = h_env.BasicOpponent(weak=True)
+    if envname == "hockey" and config["opponent"] == "strong":
+        opponent = h_env.BasicOpponent(weak=False)
+    if envname == "hockey" and config["opponent"] == "self":
+        opponent = agent
+
     # opponent for hockey
     if envname == "hockey" and config["opponent"] == "weak":
         opponent = h_env.BasicOpponent(weak=True)
@@ -118,7 +134,7 @@ def test_agent(config):
     test_stats_np = np.array(test_stats)
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1])))
     if envname == "hockey":
-        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config['numtestepisodes']}, Fraction draws: {Counter(wins)[0]/config['numtestepisodes']}, Fraction losses: {Counter(wins)[-1]/config['numtestepisodes']}")
 
     if save_gif:
         frames[0].save("../gifs/" + filename[:-3] + "gif", save_all=True, append_images=frames[1:], duration=10, loop=0, optimize=True)
@@ -134,12 +150,17 @@ if __name__ == "__main__":
     parser.add_argument("--render", action="store_true", help="Render the environment?")
     parser.add_argument("--filename", type=str, help="Model filename to load")
     parser.add_argument("--savegif", action="store_true", help="render animated gif of agent playing")
+    
+    # Hockey:
+    parser.add_argument("--opponent", default="weak", help="random/weak/strong/self opponent")
+
+
 
     args = parser.parse_args()
     config = vars(args)
-
     saved = pk.load(open(f"../saved/{config['filename'][:-2]}k", 'rb'))
     config_train = saved["config"]
+    config_train['opponent'] = config['opponent']
     config = {**config, **config_train}
     config["opponent"] = "weak"
     config["alpha_decay_every"] = 10

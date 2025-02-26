@@ -11,3 +11,4 @@ plots/
 gifs/
 *.err
 *.out
+*.sh
