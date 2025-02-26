@@ -1,16 +1,9 @@
-<<<<<<< HEAD
-import numpy as np
-import glob
-import torch
-import matplotlib.pyplot as plt
-import pickle as pk
-=======
 from math import e
 import matplotlib.pyplot as plt
 import numpy as np
 import glob
 import torch
->>>>>>> 9a9494bb7e7eb824e142a6f3f5e5f31cae3624c8
+import pickle as pk
 
 def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
@@ -20,11 +13,14 @@ env = "hockey"
 
 # ALGORITHMS COMPARISON
 num_to_algo = {
-    1: "DQN",
-    3: "DDQN",
-    2: "DQN + PER",
-    4: "Dueling DQN",
-    7: "Dueling DDQN + PER"
+    "1_20000": "DQN",
+    "3_20000": "DDQN",
+    "2_20000": "DQN + PER",
+    "4_20000": "Dueling DQN",
+    "6": "3-step DQN",
+    "8": "DQN + RND",
+    "10": "Dueling DQN + PER",
+    "7_20000": "Dueling DDQN + PER"
 }
 
 plt.figure(figsize=(5, 4))
@@ -36,37 +32,30 @@ for i, val in num_to_algo.items():
         print(f"No matching file for {file_pattern}")
         continue
 
-    filename = matching_files[-1]
+    filename = matching_files[0]
 
     try:
-        # ✅ Strongest possible fix: Ensure all tensors move to CPU
-<<<<<<< HEAD
-        data = pk.load(open(filename, 'rb'))
-=======
-        data = torch.load(filename, map_location=torch.device('cpu'))
->>>>>>> 9a9494bb7e7eb824e142a6f3f5e5f31cae3624c8
-        for key, value in data.items():
-            if isinstance(value, torch.Tensor):
-                data[key] = value.cpu()  # Ensure every tensor is explicitly on CPU
+        data = pk.load(open(filename, "rb"))
 
     except Exception as e:
         print(f"Error loading {filename}: {e}")
         continue
 
     episode_rewards = data["cum_mean_episode_rewards"]
+    episode_wins = data["episode_wins"]
+    # if i == "10":
+    #     indices = np.linspace(0, len(episode_rewards)-1, 15000).astype(int)
+    #     episode_rewards = np.array(episode_rewards)[indices]
+    #     episode_wins = np.array(episode_wins)[indices]
 
-    if i == 1:
-        plt.plot(running_mean(episode_rewards, 200), label=num_to_algo[i], linewidth=3)
+    if i == "1_20000":
+        plt.plot(running_mean(episode_wins, 1000), label=num_to_algo[i], linewidth=3)
     else:
-        plt.plot(running_mean(episode_rewards, 200), label=num_to_algo[i])
+        plt.plot(running_mean(episode_wins, 1000), label=num_to_algo[i], linewidth=1)
 
 plt.xlabel("Training episodes")
-plt.ylabel("Episode reward")
-plt.legend()
-plt.title(f"{env}")
+plt.ylabel("Fraction wins")
+# plt.ylabel("Episode reward")
+plt.legend(prop={'size': 8}, borderpad=0.3)
 plt.tight_layout()
-<<<<<<< HEAD
-plt.savefig(f"../plots/{env}.png")
-=======
-plt.savefig(f"../plots/{env}.png")
->>>>>>> 9a9494bb7e7eb824e142a6f3f5e5f31cae3624c8
+plt.savefig(f"../plots/{env}2.png")

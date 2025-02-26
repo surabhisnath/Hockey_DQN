@@ -87,7 +87,12 @@ def train_agent(config):
         np.random.seed(seed)
         torch.manual_seed(seed)
 
-        agent = DQNAgent(env.observation_space, env.action_space, config)
+        if config["agentfilename"] == "None":
+            agentfilename = config["agentfilename"]
+            agent.Q.load_state_dict(torch.load("../saved/" + agentfilename))
+            agent._update_target_net()
+        else:
+            agent = DQNAgent(env.observation_space, env.action_space, config)
 
         eps = config["epsilon"]
 
@@ -97,11 +102,10 @@ def train_agent(config):
             opponent = h_env.BasicOpponent(weak=False)
         if envname == "hockey" and config["opponent"] == "self":
             filename = config["selfplayfilename"]
-            agent.Q.load_state_dict(torch.load(filename))
+            agent.Q.load_state_dict(torch.load("../saved/" + filename))
             agent._update_target_net()
             opponent = None
 
-        
         episode_rewards = []
         episode_wins = []
         cum_mean_episode_rewards = []
@@ -130,12 +134,12 @@ def train_agent(config):
                     a = agent.act(ob, eps)
 
                     if envname == "hockey":
-                        a1 = env.action(a)
+                        a1 = env.action(a, config["numdiscreteactions"])
                         if config["opponent"] == "random":
                             a2 = np.random.uniform(-1,1,4)
                         elif config["opponent"] == "self":
                             a2_disc = agent.act(ob2, eps)
-                            a2 = env.action(a2_disc)
+                            a2 = env.action(a2_disc, config["numdiscreteactions"])
                         else:
                             a2 = opponent.act(ob2)
                         (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -195,22 +199,38 @@ def train_agent(config):
 
         ###### Normal training ######
         if envname == "hockey":
-            env = h_env.HockeyEnv()
+            if config["trainmode"] == "offense":
+                env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_SHOOTING)
+            elif config["trainmode"] == "defense":
+                env = h_env.HockeyEnv(mode=h_env.Mode.TRAIN_DEFENSE) 
+            elif config["trainmode"] == "full":
+                env = h_env.HockeyEnv()
             env.discretize_actions(config["numdiscreteactions"])
         eps = config["epsilon"]
         for i in range(config["numepisodes"]):
-            
-            # if i == 20000 and envname == "hockey":
-            #     config["epsilon"] = 1
-            #     config["epsilondecay"] = 0.9995     # will decay in 5k
-            #     eps = config["epsilon"]
-            #     config["opponent"] = "strong"
-            #     opponent = h_env.BasicOpponent(weak=False)
-            # if i == 35000 and envname == "hockey":
-            #     config["epsilon"] = 1
-            #     config["epsilondecay"] = 0.999     # will decay in 2.5k
-            #     config["opponent"] = "self"
-            #     opponent = agent
+
+            if i == 15000:
+                save_dict = {
+                    "Q_state_dict": agent.Q.state_dict(),
+                    "Qt_state_dict": agent.Qt.state_dict(),
+                    "config": config,
+                    "episode_rewards": episode_rewards,
+                    "episode_wins": episode_wins,
+                    "cum_mean_episode_rewards": cum_mean_episode_rewards,
+                    "losses": losses,
+                }
+                
+                if config["savenum"] is None:
+                    savenum = random_number()
+                else:
+                    savenum = config["savenum"]
+
+                os.makedirs(config["savepath"], exist_ok=True)
+                with open(config["savepath"] + f"agent_{config['env']}_{seed}_{savenum}_15000.pk", "wb") as f:
+                    pk.dump(save_dict, f)
+
+                torch.save(agent.Q.state_dict(), 
+                    f"../saved/agent_{config['env']}_{seed}_{savenum}_15000.pth")
 
             if config["verbose"]:
                 print(f"Seed: {seed}. Starting episode {i+1}", flush=True)
@@ -225,12 +245,12 @@ def train_agent(config):
                 a = agent.act(ob, eps)
 
                 if envname == "hockey":
-                    a1 = env.action(a)
+                    a1 = env.action(a, config["numdiscreteactions"])
                     if config["opponent"] == "random":
                         a2 = np.random.uniform(-1,1,4)
                     elif config["opponent"] == "self":
                         a2_disc = agent.act(ob2, eps)
-                        a2 = env.action(a2_disc)
+                        a2 = env.action(a2_disc, config["numdiscreteactions"])
                     else:
                         a2 = opponent.act(ob2)
                     (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -357,10 +377,10 @@ def test_agent(config, agent=None, opponent=None, filename=None):
             done = False
             a = agent.act(ob, 0)
             if envname == "hockey":
-                a1 = env.action(a)
+                a1 = env.action(a, config["numdiscreteactions"])
                 if config["opponent"] == "self":
                     a2_dis = agent.act(ob2, 0)
-                    a2 = env.action(a2_dis)
+                    a2 = env.action(a2_dis, config["numdiscreteactions"])
                 else:
                     a2 = opponent.act(ob2)
                 (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
@@ -467,20 +487,22 @@ if __name__ == "__main__":
     parser.add_argument("--multistep", type=str, default="None", help='Multistep learning: None (1-step), int (n-step), or "MonteCarlo".')      # cannot go with PER
 
     # Hyperparameters:
-    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
-    parser.add_argument("--alpha", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
+    parser.add_argument("--alpha", type=float, default=0.0002, help="Learning rate")
     parser.add_argument("--alpha_decay_every", type=int, default=2000, help="Decay learning rate every N episodes")
-    parser.add_argument("--alphadecay", type=float, default=0.95, help="Multiply learning rate by this factor every decay step")
+    parser.add_argument("--alphadecay", type=float, default=1, help="Multiply learning rate by this factor every decay step")
     parser.add_argument("--alpha_rnd", type=float, default=0.001, help="Learning rate for RND target network")
     parser.add_argument("--epsilon", type=float, default=1, help="Epsilon for epsilon greedy")
     parser.add_argument("--epsilondecay", type=float, default=0.9998, help="Decay factor. If 1, no decay")
-    parser.add_argument("--minepsilon", type=float, default=0.01, help="Minimum value of epsilon")
+    parser.add_argument("--minepsilon", type=float, default=0.2, help="Minimum value of epsilon")
 
     # Memory:
     parser.add_argument("--buffersize", type=int, default=int(1e5), help="Memory buffer size")
     parser.add_argument("--batchsize", type=int, default=128, help="Sampling batch size")
 
     # Train:
+    parser.add_argument("--agentfilename", default=None, help="Continue training agent loaded from saved file")
+    parser.add_argument("--trainmode", default="full", help="offense, defense, or full training mode")
     parser.add_argument("--train", action="store_true", default=True, help="Trains model (default: True)")
     parser.add_argument("--notrain", action="store_false", dest="train", help="Don't train model")
     parser.add_argument("--hiddensize", type=int, default=100, help="Hidden layer dimensionality")

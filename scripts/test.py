@@ -96,7 +96,7 @@ def test_agent(config):
             done = False
             a = agent.act(ob, 0)
             if envname == "hockey":
-                a1 = env.action(a)
+                a1 = env.action(a, config["numdiscreteactions"])
                 a2 = opponent.act(ob2)
                 (ob_new, reward, done, _, info) = env.step(np.hstack([a1,a2]))
             else:
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     saved = pk.load(open(f"../saved/{config['filename'][:-2]}k", 'rb'))
     config_train = saved["config"]
     config = {**config, **config_train}
-    config["opponent"] = "strong"
+    config["opponent"] = "weak"
     config["alpha_decay_every"] = 10
     config["alphadecay"] = 1
     config["numtestepisodes"] = 1000

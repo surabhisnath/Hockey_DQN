@@ -17,4 +17,5 @@ scontrol show job $SLURM_JOB_ID
 
 source /home/dayan/dno388/.bashrc
 conda activate /mnt/lustre/work/dayan/dno388/conda_envs/RLproject
-python /mnt/lustre/work/dayan/dno388/RL_project/scripts/test.py --filename agent_hockey_0_1_20000.pth --savegif
+
+python /mnt/lustre/work/dayan/dno388/RL_project/scripts/runner.py --env hockey --numepisodes 10000 --agentfilename agent_hockey_0_10.pth --opponent weak --trainmode defense --numseeds 1 --epsilon 1  --minepsilon 0.2 --epsilondecay 0.9998 --savenum 10_4 --per --dueling
