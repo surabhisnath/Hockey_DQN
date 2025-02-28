@@ -8,7 +8,7 @@ from Qfunction import QFunction, QFunction_Dueling
 from rnd import RND
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+print("Device:", device)
 
 class DQNAgent(object):
     def __init__(self, observation_space, action_space, config):
@@ -43,12 +43,12 @@ class DQNAgent(object):
     def _update_target_net(self):
         self.Qt.load_state_dict(self.Q.state_dict())
 
-    def act(self, observation):
+    def act(self, observation, eps):
         # if self.config["use_noisy_nets"]:
         #     action = self.Q.greedyAction(observation)
         # else:
 
-        eps = self.config["epsilon"]
+        # eps = self.config["epsilon"]
 
         if np.random.random() > eps:
             action = self.Q.greedyAction(observation)
@@ -84,7 +84,7 @@ class DQNAgent(object):
 
             if self.config["double"]:
                 actions_to_use = self.Q.maxQactions(s_)
-                Qtval = self.Qt.doubleQt(s_, torch.tensor(actions_to_use, device=device))
+                Qtval = self.Qt.doubleQt(s_, torch.tensor(actions_to_use, device=device)).cpu().numpy()
             else:
                 Qtval = self.Qt.maxQ(s_)
 
@@ -102,11 +102,11 @@ class DQNAgent(object):
             losses.append(fit_loss)
 
             if self.config["per"]:
-                self.buffer.update(inds, td_error.detach().numpy())
+                self.buffer.update(inds, td_error.detach().cpu().numpy())
         
         # decay epsilon
-        self.config["epsilon"] = self.config["epsilon"] * self.config["epsilondecay"]
-        if self.config["epsilon"] < self.config["minepsilon"]:
-            self.config["epsilon"] = self.config["minepsilon"]
+        # self.config["epsilon"] = self.config["epsilon"] * self.config["epsilondecay"]
+        # if self.config["epsilon"] < self.config["minepsilon"]:
+        #    self.config["epsilon"] = self.config["minepsilon"]
             
         return losses

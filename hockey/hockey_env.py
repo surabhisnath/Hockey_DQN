@@ -817,7 +817,7 @@ class HockeyEnv(gym.Env, EzPickle):
                 True,
             )
 
-    def discrete_to_continous_action(self, discrete_action):
+    def discrete_to_continous_action8(self, discrete_action):
         """converts discrete actions into continuous ones (for one player)
         The actions allow only one operation each timestep, e.g. X or Y or angle change.
         This is surely limiting. Other discrete actions are possible
@@ -837,6 +837,91 @@ class HockeyEnv(gym.Env, EzPickle):
         ]  # player angle
         if self.keep_mode:
             action_cont.append((discrete_action == 7) * 1.0)
+
+        return action_cont
+    
+    def discrete_to_continous_action20(self, discrete_action):
+        """Converts discrete actions into continuous ones (for one player).
+        
+        - Action 0: stand
+        - Action 1: left (-x)
+        - Action 2: right (+x)
+        - Action 3: down (-y)
+        - Action 4: up (+y)
+        - Action 5: clockwise (-angle)
+        - Action 6: counter-clockwise (+angle)
+        - Action 7: left down (-x, -y)
+        - Action 8: left up (-x, +y)
+        - Action 9: right down (+x, -y)
+        - Action 10: right up (+x, +y)
+        - Action 11: left clockwise (-x, -angle)
+        - Action 12: left counter-clockwise (-x, +angle)
+        - Action 13: right clockwise (+x, -angle)
+        - Action 14: right counter-clockwise (+x, +angle)
+        - Action 15: up clockwise (+y, -angle)
+        - Action 16: up counter-clockwise (+y, +angle)
+        - Action 17: down clockwise (-y, -angle)
+        - Action 18: down counter-clockwise (-y, +angle)
+        - Action 19: shoot (if keep_mode is on)
+        """
+        
+        action_cont = [
+            (discrete_action == 1) * -1.0 + (discrete_action == 2) * 1.0 + 
+            (discrete_action == 7) * -1.0 + (discrete_action == 8) * -1.0 + 
+            (discrete_action == 9) * 1.0 + (discrete_action == 10) * 1.0 + 
+            (discrete_action == 11) * -1.0 + (discrete_action == 12) * -1.0 + 
+            (discrete_action == 13) * 1.0 + (discrete_action == 14) * 1.0,  # player x
+
+            (discrete_action == 3) * -1.0 + (discrete_action == 4) * 1.0 + 
+            (discrete_action == 7) * -1.0 + (discrete_action == 8) * 1.0 + 
+            (discrete_action == 9) * -1.0 + (discrete_action == 10) * 1.0 + 
+            (discrete_action == 15) * 1.0 + (discrete_action == 16) * 1.0 + 
+            (discrete_action == 17) * -1.0 + (discrete_action == 18) * -1.0,  # player y
+
+            (discrete_action == 5) * -1.0 + (discrete_action == 6) * 1.0 + 
+            (discrete_action == 11) * -1.0 + (discrete_action == 12) * 1.0 + 
+            (discrete_action == 13) * -1.0 + (discrete_action == 14) * 1.0 + 
+            (discrete_action == 15) * -1.0 + (discrete_action == 16) * 1.0 + 
+            (discrete_action == 17) * -1.0 + (discrete_action == 18) * 1.0,  # player angle
+        ]
+        
+        if self.keep_mode:
+            action_cont.append((discrete_action == 19) * 1.0)
+
+        return action_cont
+    
+    def discrete_to_continous_action14(self, discrete_action):
+        """Converts discrete actions into continuous ones (for one player).
+        
+        - Action 0: stand
+        - Action 1: left (-1 x)
+        - Action 2: right (+1 x)
+        - Action 3: down (-1 y)
+        - Action 4: up (+1 y)
+        - Action 5: clockwise (-1 angle)
+        - Action 6: counter-clockwise (+1 angle)
+        - Action 7: left fast (-2 x)
+        - Action 8: right fast (+2 x)
+        - Action 9: down fast (-2 y)
+        - Action 10: up fast (+2 y)
+        - Action 11: clockwise fast (-2 angle)
+        - Action 12: counter-clockwise fast (+2 angle)
+        - Action 13: shoot (if keep_mode is on)
+        """
+        
+        action_cont = [
+            (discrete_action == 1) * -1.0 + (discrete_action == 2) * 1.0 +
+            (discrete_action == 7) * -2.0 + (discrete_action == 8) * 2.0,  # player x
+
+            (discrete_action == 3) * -1.0 + (discrete_action == 4) * 1.0 +
+            (discrete_action == 9) * -2.0 + (discrete_action == 10) * 2.0,  # player y
+
+            (discrete_action == 5) * -1.0 + (discrete_action == 6) * 1.0 +
+            (discrete_action == 11) * -2.0 + (discrete_action == 12) * 2.0,  # player angle
+        ]
+        
+        if self.keep_mode:
+            action_cont.append((discrete_action == 13) * 1.0)  # Shoot action
 
         return action_cont
 
@@ -991,8 +1076,15 @@ class HockeyEnv(gym.Env, EzPickle):
         self.orig_action_space = self.action_space
         self.action_space = spaces.Discrete(self.bins)
     
-    def action(self, action):
-        return self.discrete_to_continous_action(action)
+    def action(self, action, numdiscreteactions):
+        if numdiscreteactions == 8:
+            return self.discrete_to_continous_action8(action)
+        elif numdiscreteactions == 14:
+            return self.discrete_to_continous_action14(action)
+        elif numdiscreteactions == 20:
+            return self.discrete_to_continous_action20(action)
+        else:
+            return None
 
 
 class BasicOpponent:
