@@ -2,11 +2,13 @@ import torch
 import numpy as np
 import gymnasium as gym
 from gymnasium import *
+from gymnasium import spaces
 from memory import Memory, PrioritizedMemory
 from Qfunction import QFunction, QFunction_Dueling
 from rnd import RND
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 class DQNAgent(object):
     def __init__(self, observation_space, action_space, config):

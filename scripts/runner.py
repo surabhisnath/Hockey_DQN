@@ -246,7 +246,7 @@ def test_agent(config, agent=None, opponent=None, filename=None):
     test_stats_np = np.array(test_stats)
     print("Mean test reward {} +/- std {}".format(np.mean(test_stats_np[:,1]), np.std(test_stats_np[:,1]))) # to print test rewards
     if envname == "hockey":
-        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config["numtestepisodes"]}, Fraction draws: {Counter(wins)[0]/config["numtestepisodes"]}, Fraction losses: {Counter(wins)[-1]/config["numtestepisodes"]}")
+        print(f"{i+1} episodes completed: Fraction wins: {Counter(wins)[1]/config['numtestepisodes']}, Fraction draws: {Counter(wins)[0]/config['numtestepisodes']}, Fraction losses: {Counter(wins)[-1]/config['numtestepisodes']}")
 
     return np.mean(test_stats_np[:,1])
 
@@ -390,5 +390,4 @@ if __name__ == "__main__":
 
     config = vars(args)
     print(config)
-
     run(config)
